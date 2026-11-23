@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
 
 	"github.com/MiteshDhangar/beautify-alert/pkg/alert"
 	"github.com/MiteshDhangar/beautify-alert/pkg/config"
@@ -42,7 +42,7 @@ func (a *App) routes(mux *http.ServeMux) {
 // from sending email through the plugin.
 func (a *App) requireRole(min string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		u := httpadapter.UserFromContext(r.Context())
+		u := backend.UserFromContext(r.Context())
 		role := ""
 		if u != nil {
 			role = u.Role
