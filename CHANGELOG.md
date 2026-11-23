@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.1
+
+- Plugin ID is now `prudentbee939-beautifyalert-app`, matching the grafana.com organization
+- Use `backend.UserFromContext` (fixes the backend lint check)
+- Fill in the copyright line of the license
+
+## 0.1.0
 
 First release.
 

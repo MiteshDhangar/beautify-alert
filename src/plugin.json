@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
   "type": "app",
   "name": "Beautify Alert",
-  "id": "miteshdhangar76-beautifyalert-app",
+  "id": "prudentbee939-beautifyalert-app",
   "backend": true,
   "executable": "gpx_beautifyalert",
   "info": {

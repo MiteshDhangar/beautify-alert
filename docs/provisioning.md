@@ -8,7 +8,7 @@ Put a file in Grafana's `provisioning/plugins/` directory:
 apiVersion: 1
 
 apps:
-  - type: miteshdhangar76-beautifyalert-app
+  - type: prudentbee939-beautifyalert-app
     org_id: 1
     disabled: false
     jsonData:
@@ -42,4 +42,4 @@ Grafana expands `$SMTP_PASSWORD` from the environment.
 
 Grafana applies this file each time it starts and replaces the settings saved in the UI. Edits made in the UI last until the next restart, so treat the file as the source of truth.
 
-The contact point and its service account can be provisioned too, with Grafana's [alerting provisioning](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/file-provisioning/) files. Use a webhook integration with the URL `<grafana>/api/plugins/miteshdhangar76-beautifyalert-app/resources/alert` and a Bearer token of an Editor service account.
+The contact point and its service account can be provisioned too, with Grafana's [alerting provisioning](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/file-provisioning/) files. Use a webhook integration with the URL `<grafana>/api/plugins/prudentbee939-beautifyalert-app/resources/alert` and a Bearer token of an Editor service account.

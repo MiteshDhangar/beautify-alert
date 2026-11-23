@@ -1,7 +1,7 @@
 services:
   grafana:
     user: root
-    container_name: 'miteshdhangar76-beautifyalert-app'
+    container_name: 'prudentbee939-beautifyalert-app'
 
     build:
       context: .
@@ -19,13 +19,13 @@ services:
     cap_add:
       - SYS_PTRACE
     volumes:
-      - ../dist:/var/lib/grafana/plugins/miteshdhangar76-beautifyalert-app
+      - ../dist:/var/lib/grafana/plugins/prudentbee939-beautifyalert-app
       - ../provisioning:/etc/grafana/provisioning
-      - ..:/root/miteshdhangar76-beautifyalert-app
+      - ..:/root/prudentbee939-beautifyalert-app
 
     environment:
       NODE_ENV: development
-      GF_LOG_FILTERS: plugin.miteshdhangar76-beautifyalert-app:debug
+      GF_LOG_FILTERS: plugin.prudentbee939-beautifyalert-app:debug
       GF_LOG_LEVEL: debug
       GF_DATAPROXY_LOGGING: 1
-      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: miteshdhangar76-beautifyalert-app
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: prudentbee939-beautifyalert-app

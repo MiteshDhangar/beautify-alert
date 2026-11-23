@@ -11,4 +11,4 @@ export enum ROUTES {
 
 export const CONTACT_POINT_NAME = 'Beautify Alert';
 export const SERVICE_ACCOUNT_NAME = 'beautify-alert';
-export const ISSUES_URL = 'https://github.com/miteshdhangar76/beautify-alert/issues/new';
+export const ISSUES_URL = 'https://github.com/MiteshDhangar/beautify-alert/issues/new';

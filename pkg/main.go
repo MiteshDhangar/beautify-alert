@@ -16,7 +16,7 @@ func main() {
 	// argument. This factory will be automatically called on incoming request
 	// from Grafana to create different instances of `App` (per plugin
 	// ID).
-	if err := app.Manage("miteshdhangar76-beautifyalert-app", plugin.NewApp, app.ManageOpts{}); err != nil {
+	if err := app.Manage("prudentbee939-beautifyalert-app", plugin.NewApp, app.ManageOpts{}); err != nil {
 		log.DefaultLogger.Error(err.Error())
 		os.Exit(1)
 	}

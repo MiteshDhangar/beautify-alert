@@ -36,7 +36,7 @@ Dependencies point one way: `plugin` uses `notify`, which uses `routing`, `templ
 
 ## HTTP endpoints
 
-All under `/api/plugins/miteshdhangar76-beautifyalert-app/resources/`. Grafana handles authentication.
+All under `/api/plugins/prudentbee939-beautifyalert-app/resources/`. Grafana handles authentication.
 
 | Endpoint | Minimum role | Purpose |
 | --- | --- | --- |

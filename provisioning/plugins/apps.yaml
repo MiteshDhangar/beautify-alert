@@ -8,7 +8,7 @@
 apiVersion: 1
 
 apps:
-  - type: 'miteshdhangar76-beautifyalert-app'
+  - type: 'prudentbee939-beautifyalert-app'
     org_id: 1
     disabled: false
     jsonData:

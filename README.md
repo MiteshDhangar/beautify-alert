@@ -26,7 +26,7 @@ Alert rule ──► Grafana alerting ──► Webhook contact point ──► 
                 template)                        token)                   renders, sends)
 ```
 
-Grafana plugins cannot add new contact point types, so the plugin receives alerts from Grafana's own webhook contact point at `/api/plugins/miteshdhangar76-beautifyalert-app/resources/alert`. Grafana authenticates that call with a service account token. See [docs/architecture.md](docs/architecture.md).
+Grafana plugins cannot add new contact point types, so the plugin receives alerts from Grafana's own webhook contact point at `/api/plugins/prudentbee939-beautifyalert-app/resources/alert`. Grafana authenticates that call with a service account token. See [docs/architecture.md](docs/architecture.md).
 
 ## Requirements
 
@@ -38,20 +38,20 @@ Grafana plugins cannot add new contact point types, so the plugin receives alert
 Until the plugin is in the Grafana catalog, install it from a release zip:
 
 ```bash
-unzip miteshdhangar76-beautifyalert-app-<version>.zip -d /var/lib/grafana/plugins/
+unzip prudentbee939-beautifyalert-app-<version>.zip -d /var/lib/grafana/plugins/
 ```
 
 Allow it as an unsigned plugin in `grafana.ini`, then restart Grafana:
 
 ```ini
 [plugins]
-allow_loading_unsigned_plugins = miteshdhangar76-beautifyalert-app
+allow_loading_unsigned_plugins = prudentbee939-beautifyalert-app
 ```
 
 ## Set up
 
 1. **Configuration:** open Administration, Plugins, Beautify Alert, Configuration. Enter the SMTP host, port, security, login and the from address. Click **Test connection**, then **Save settings**.
-2. **Setup page:** open Beautify Alert, Setup, and click **Create contact point**. If the Grafana server cannot reach its own public URL, change the webhook URL to one it can reach, such as `http://localhost:3000/api/plugins/miteshdhangar76-beautifyalert-app/resources/alert`.
+2. **Setup page:** open Beautify Alert, Setup, and click **Create contact point**. If the Grafana server cannot reach its own public URL, change the webhook URL to one it can reach, such as `http://localhost:3000/api/plugins/prudentbee939-beautifyalert-app/resources/alert`.
 3. **Route alerts:** pick the `Beautify Alert` contact point in an alert rule, or route to it in a notification policy.
 4. **Templates:** create a template, then add `email_template=<name>` to the alert rules that should use it.
 
