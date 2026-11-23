@@ -1,0 +1,14 @@
+services:
+  grafana:
+    extends:
+      file: .config/docker-compose-base.yaml
+      service: grafana
+    depends_on:
+      - mailpit
+
+  # Catches every email the plugin sends. Web UI: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: 'beautify-alert-mailpit'
+    ports:
+      - 8025:8025/tcp

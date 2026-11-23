@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ .CommonLabels.alertname }}</title>
+<style>
+  body { margin: 0; padding: 20px; font-family: Helvetica, Arial, sans-serif; color: #111827; background-color: #ffffff; }
+  h2 { margin: 0 0 8px 0; }
+  .status { margin: 0 0 12px 0; color: #6b7280; }
+  .alert { margin: 0 0 6px 0; }
+</style>
+</head>
+<body>
+  <h2>{{ .CommonLabels.alertname }}</h2>
+  <p class="status">Status: {{ .Status }}</p>
+  {{ range .Alerts }}
+  <p class="alert">{{ .Annotations.summary | default .Labels.alertname }}</p>
+  {{ end }}
+</body>
+</html>

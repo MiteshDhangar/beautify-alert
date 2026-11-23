@@ -1,0 +1,35 @@
+# Development provisioning: `npm run server` (docker compose) starts Grafana
+# with this plugin enabled and sending to the Mailpit container.
+# Open http://localhost:8025 to read the emails.
+#
+# The same file format lets you keep templates in Git for production; see
+# docs/provisioning.md. Provisioned settings replace what was saved in the UI
+# each time Grafana starts.
+apiVersion: 1
+
+apps:
+  - type: 'miteshdhangar76-beautifyalert-app'
+    org_id: 1
+    disabled: false
+    jsonData:
+      delivery:
+        provider: smtp
+        fromAddress: alerts@example.com
+        fromName: Grafana Alerts
+        smtp:
+          host: mailpit
+          port: 1025
+          security: none
+      defaultRecipients: ops@example.com
+      routing:
+        templateLabel: email_template
+        recipientsLabel: email_to
+      templates:
+        - name: hello
+          description: A small example template
+          subject: 'Hello from {{ .CommonLabels.alertname }}'
+          html: |
+            <h2 style="font-family: sans-serif">{{ .CommonLabels.alertname }}</h2>
+            {{ range .Alerts }}
+            <p style="font-family: sans-serif; color: {{ statusColor .Status }}">{{ .Status }}: {{ .Annotations.summary }}</p>
+            {{ end }}
