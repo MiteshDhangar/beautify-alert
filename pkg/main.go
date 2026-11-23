@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
+	"github.com/MiteshDhangar/beautify-alert/pkg/plugin"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/app"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-	"github.com/MiteshDhangar/beautify-alert/pkg/plugin"
 )
 
 func main() {

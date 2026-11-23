@@ -140,7 +140,7 @@ func htmlFuncs() htmltemplate.FuncMap {
 		f[k] = v
 	}
 	// safeHTML inserts a value without escaping. Use it only on trusted content.
-	f["safeHTML"] = func(s string) htmltemplate.HTML { return htmltemplate.HTML(s) } //nolint:gosec // documented opt-in
+	f["safeHTML"] = func(s string) htmltemplate.HTML { return htmltemplate.HTML(s) } // #nosec G203 -- documented opt-in for admin-written templates
 	return f
 }
 

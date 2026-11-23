@@ -24,7 +24,7 @@ jobs:
       - uses: grafana/plugin-actions/build-plugin@build-plugin/v1.2.0
         with:
           node-version: '24'
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           # Signed build provenance, checked by the plugin validator and the catalog review.
           attestation: true
           # Signing: leave this commented for the first catalog submission. After Grafana

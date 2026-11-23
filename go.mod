@@ -1,6 +1,6 @@
 module github.com/MiteshDhangar/beautify-alert
 
-go 1.26.10
+go 1.26.11
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0

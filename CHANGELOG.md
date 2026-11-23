@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Build with Go 1.26.11 (fixes GO-2026-6859 reported by govulncheck)
+- Keep TLS certificate checks on unless the admin turns on "Skip certificate check" (gosec G402)
+
 ## 0.1.1
 
 - Plugin ID is now `prudentbee939-beautifyalert-app`, matching the grafana.com organization

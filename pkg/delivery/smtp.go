@@ -24,7 +24,7 @@ func (s *SMTP) client() (*mail.Client, error) {
 	opts := []mail.Option{
 		mail.WithPort(c.Port),
 		mail.WithTimeout(smtpTimeout),
-		mail.WithTLSConfig(&tls.Config{ServerName: c.Host, InsecureSkipVerify: c.SkipVerify, MinVersion: tls.VersionTLS12}), //nolint:gosec // opt-in setting
+		mail.WithTLSConfig(tlsConfig(c)),
 	}
 	switch c.Security {
 	case config.SecurityTLS:
@@ -42,6 +42,17 @@ func (s *SMTP) client() (*mail.Client, error) {
 		)
 	}
 	return mail.NewClient(c.Host, opts...)
+}
+
+// tlsConfig verifies the server certificate unless the admin turned on
+// "Skip certificate check" for an SMTP server with a self-signed certificate
+// (the same option as skip_verify in Grafana's own [smtp] settings).
+func tlsConfig(c config.SMTP) *tls.Config {
+	cfg := &tls.Config{ServerName: c.Host, MinVersion: tls.VersionTLS12}
+	if c.SkipVerify {
+		cfg.InsecureSkipVerify = true // #nosec G402 -- explicit admin opt-in, off by default
+	}
+	return cfg
 }
 
 // Send implements Sender.
