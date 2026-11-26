@@ -41,6 +41,9 @@ type Entry struct {
 	Alerts      int       `json:"alerts"`
 	OK          bool      `json:"ok"`
 	Error       string    `json:"error,omitempty"`
+	Warnings    []string  `json:"warnings,omitempty"`
+	// Skipped says why no email was sent on purpose.
+	Skipped string `json:"skipped,omitempty"`
 	// Message is kept for viewing and resending; nil when the body was too large.
 	Message *delivery.Message `json:"message,omitempty"`
 }

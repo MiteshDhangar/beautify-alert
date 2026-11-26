@@ -87,8 +87,22 @@ export default function HistoryPage() {
       id: 'ok',
       header: 'Result',
       cell: ({ row: { original: e } }: Cell) =>
-        e.ok ? (
-          <Badge text="Sent" color="green" icon="check" />
+        e.skipped ? (
+          <Tooltip content={e.skipped}>
+            <span>
+              <Badge text="Skipped" color="blue" icon="info-circle" />
+            </span>
+          </Tooltip>
+        ) : e.ok ? (
+          e.warnings?.length ? (
+            <Tooltip content={e.warnings.join('. ')}>
+              <span>
+                <Badge text="Sent, with warnings" color="orange" icon="exclamation-triangle" />
+              </span>
+            </Tooltip>
+          ) : (
+            <Badge text="Sent" color="green" icon="check" />
+          )
         ) : (
           <Tooltip content={e.error ?? ''}>
             <span>
@@ -185,6 +199,15 @@ export default function HistoryPage() {
                 {open.error}
               </Alert>
             )}
+            {open.warnings?.length ? (
+              <Alert severity="warning" title="Sent with warnings">
+                <ul>
+                  {open.warnings.map((w) => (
+                    <li key={w}>{w}</li>
+                  ))}
+                </ul>
+              </Alert>
+            ) : null}
             {open.message ? (
               <EmailPreview
                 subject={open.message.subject}

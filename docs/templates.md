@@ -10,7 +10,10 @@ At the top level, `.` is the notification:
 
 | Field | Type | Description |
 | --- | --- | --- |
+| `.Name` | string | Name of the alerts in this email. For Grafana's query-error and no-data alerts it is the rule name plus "(query failed)" or "(no data)" |
 | `.Status` | string | `firing` if any alert in this email is firing, else `resolved` |
+| `.FiringCount`, `.ResolvedCount` | number | Firing and resolved alerts, including any not listed because of the alerts-per-email limit |
+| `.TruncatedAlerts` | number | Alerts not listed in this email. Show it with `{{ if .TruncatedAlerts }}And {{ .TruncatedAlerts }} more.{{ end }}` |
 | `.Alerts` | list of alerts | Every alert in this email |
 | `.Alerts.Firing` | list of alerts | The firing alerts |
 | `.Alerts.Resolved` | list of alerts | The resolved alerts |
@@ -31,6 +34,9 @@ Inside `{{ range .Alerts }}`, `.` is one alert:
 | Field | Type | Description |
 | --- | --- | --- |
 | `.Status` | string | `firing` or `resolved` |
+| `.Name` | string | The alert name, or the rule name with "(query failed)" or "(no data)" for Grafana's error alerts |
+| `.Problem` | string | `query-error` for a `DatasourceError` alert, `no-data` for `DatasourceNoData`, else empty |
+| `.Error` | string | The error Grafana attached to a `DatasourceError` alert |
 | `.Labels` | labels | All labels, for example `.Labels.severity` |
 | `.Annotations` | labels | All annotations, for example `.Annotations.summary` |
 | `.StartsAt`, `.EndsAt` | time | When the alert started and ended |
@@ -110,4 +116,21 @@ Values with units:
 ## Limits
 
 - A rendered email can be at most 5 MB.
-- Template errors show in the preview. When an alert fails to render, the delivery log records the error and Grafana retries the notification.
+- Template errors show in the preview, and a template with an error cannot be saved. If a saved template still fails on real alert data, the email is sent with the built-in template and the delivery log shows the error as a warning.
+- Total template storage is limited to 64 KB by Grafana, compressed. The Templates page shows how much is used.
+
+## Grafana's error alerts
+
+When a rule's query fails or returns no data, Grafana sends its own alert named `DatasourceError` or `DatasourceNoData`, with the rule's labels (including `email_template`). Templates should handle them:
+
+```html
+{{ range .Alerts }}
+  {{ if eq .Problem "query-error" }}
+    <p>The check could not run: {{ .Error }}</p>
+  {{ else }}
+    <p>{{ .Annotations.summary }}</p>
+  {{ end }}
+{{ end }}
+```
+
+The starter templates already do this.

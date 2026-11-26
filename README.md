@@ -14,7 +14,11 @@ Grafana's email contact point lets you change the subject and the text of an ale
 - **Live preview and test emails.** See the email update as you type, with firing and resolved sample alerts, then send a test to your inbox.
 - **Starter templates.** Cards, compact table, summary for stakeholders, and blank.
 - **One-click setup.** The Setup page creates the service account, its token and the webhook contact point for you.
-- **Delivery log.** Every email sent or failed, with the error, a full view of the email and a resend button.
+- **Delivery log.** Every email sent, failed or skipped, with errors, warnings, a full view of the email and a resend button.
+- **Safe delivery.** Invalid addresses are skipped instead of blocking the email, a template that breaks on real data falls back to the built-in layout, and short SMTP failures are retried (Grafana's webhook does not retry).
+- **Large groups.** Emails list up to 40 alerts by default and say how many more there are, so Gmail does not cut them off.
+- **Time-window rules.** Turn off resolved-only emails per template, for rules whose query only returns rows during a window.
+- **Grafana's error alerts.** Query failures and no-data alerts name the rule and show the error.
 - **Email threading.** The firing and resolved emails of one alert group carry the same `References` header, so mail clients can show them as one conversation.
 - **Templates as code.** Templates and settings can be provisioned from YAML and kept in Git.
 

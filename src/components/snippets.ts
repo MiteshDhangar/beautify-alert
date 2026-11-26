@@ -8,9 +8,13 @@ export interface Snippet {
 }
 
 export const SNIPPETS: Snippet[] = [
-  { label: 'Alert name', insert: '{{ .CommonLabels.alertname }}', detail: 'Name shared by the alerts in this email' },
+  {
+    label: 'Alert name',
+    insert: '{{ .Name }}',
+    detail: 'Name of the alerts in this email; names the rule for query errors',
+  },
   { label: 'Status', insert: '{{ .Status }}', detail: 'firing or resolved' },
-  { label: 'Firing count', insert: '{{ len .Alerts.Firing }}', detail: 'Number of firing alerts' },
+  { label: 'Firing count', insert: '{{ .FiringCount }}', detail: 'Number of firing alerts, including any not listed' },
   { label: 'Loop over alerts', insert: '{{ range .Alerts }}\n  \n{{ end }}', detail: 'Repeat a block for each alert' },
   { label: 'Summary', insert: '{{ .Annotations.summary }}', detail: 'Inside a loop: the summary annotation' },
   {
@@ -19,6 +23,16 @@ export const SNIPPETS: Snippet[] = [
     detail: 'Inside a loop: the description annotation',
   },
   { label: 'Severity', insert: '{{ .Labels.severity }}', detail: 'Inside a loop: the severity label' },
+  {
+    label: 'Query error',
+    insert: '{{ with .Error }}{{ . }}{{ end }}',
+    detail: 'Inside a loop: the error when Grafana could not run the query',
+  },
+  {
+    label: 'More not listed',
+    insert: '{{ if .TruncatedAlerts }}And {{ .TruncatedAlerts }} more.{{ end }}',
+    detail: 'Shown when the alerts-per-email limit is reached',
+  },
   { label: 'Status color', insert: '{{ statusColor .Status }}', detail: 'Red when firing, green when resolved' },
   {
     label: 'Severity color',

@@ -11,7 +11,7 @@ describe('snippets', () => {
 
   it('balances block snippets', () => {
     for (const s of SNIPPETS) {
-      const opens = (s.insert.match(/\{\{ (range|if) /g) ?? []).length;
+      const opens = (s.insert.match(/\{\{ (range|if|with) /g) ?? []).length;
       const ends = (s.insert.match(/\{\{ end \}\}/g) ?? []).length;
       expect(ends).toBe(opens);
     }

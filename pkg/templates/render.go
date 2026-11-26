@@ -219,12 +219,15 @@ func PlainText(subject string, n alert.Notification) string {
 	var b strings.Builder
 	b.WriteString(subject + "\n\n")
 	for _, a := range n.Alerts {
-		fmt.Fprintf(&b, "[%s] %s\n", strings.ToUpper(a.Status), a.Labels["alertname"])
+		fmt.Fprintf(&b, "[%s] %s\n", strings.ToUpper(a.Status), a.Name())
 		if s := a.Annotations["summary"]; s != "" {
 			b.WriteString(s + "\n")
 		}
 		if d := a.Annotations["description"]; d != "" {
 			b.WriteString(d + "\n")
+		}
+		if e := a.Error(); e != "" {
+			b.WriteString("Error: " + e + "\n")
 		}
 		for _, kv := range a.Labels.SortedPairs() {
 			fmt.Fprintf(&b, "  %s=%s\n", kv.Name, kv.Value)
@@ -239,6 +242,9 @@ func PlainText(subject string, n alert.Notification) string {
 			b.WriteString("Rule: " + a.GeneratorURL + "\n")
 		}
 		b.WriteString("\n")
+	}
+	if n.TruncatedAlerts > 0 {
+		fmt.Fprintf(&b, "And %d more alerts not listed.\n", n.TruncatedAlerts)
 	}
 	return b.String()
 }

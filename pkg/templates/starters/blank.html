@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ .CommonLabels.alertname }}</title>
+<title>{{ .Name }}</title>
 <style>
   body { margin: 0; padding: 20px; font-family: Helvetica, Arial, sans-serif; color: #111827; background-color: #ffffff; }
   h2 { margin: 0 0 8px 0; }
@@ -12,10 +12,10 @@
 </style>
 </head>
 <body>
-  <h2>{{ .CommonLabels.alertname }}</h2>
+  <h2>{{ .Name }}</h2>
   <p class="status">Status: {{ .Status }}</p>
   {{ range .Alerts }}
-  <p class="alert">{{ .Annotations.summary | default .Labels.alertname }}</p>
+  <p class="alert">{{ .Annotations.summary | default .Name }}</p>
   {{ end }}
 </body>
 </html>

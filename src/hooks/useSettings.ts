@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { pluginSettings } from '../api';
+import { settingsBytes } from '../storage';
 import { Settings } from '../types';
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -14,6 +15,7 @@ export const DEFAULT_SETTINGS: Settings = {
   routing: { templateLabel: 'email_template', recipientsLabel: 'email_to' },
   templates: [],
   threading: true,
+  maxAlertsPerEmail: 40,
 };
 
 /** Fills defaults into saved jsonData so pages never deal with missing keys. */
@@ -34,6 +36,8 @@ export function withDefaults(json: Partial<Settings> | undefined): Settings {
 
 interface State {
   settings?: Settings;
+  /** Bytes the saved jsonData takes, out of Grafana's 64 KB. */
+  storageBytes?: number;
   secureFields: Record<string, boolean>;
   enabled: boolean;
   loading: boolean;
@@ -47,8 +51,10 @@ export function useSettings() {
   const reload = useCallback(async () => {
     try {
       const s = await pluginSettings.get();
+      const templates = await pluginSettings.templates(s.jsonData);
       setState({
-        settings: withDefaults(s.jsonData),
+        settings: { ...withDefaults(s.jsonData), templates, templatesGz: undefined },
+        storageBytes: settingsBytes(s.jsonData ?? {}),
         secureFields: s.secureJsonFields ?? {},
         enabled: s.enabled,
         loading: false,

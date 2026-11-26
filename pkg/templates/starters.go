@@ -11,7 +11,7 @@ import (
 var starterFS embed.FS
 
 // DefaultSubject is used when a template has no subject.
-const DefaultSubject = `[{{ .Status | upper }}{{ if eq .Status "firing" }}:{{ len .Alerts.Firing }}{{ end }}] {{ .CommonLabels.alertname | default "Grafana alert" }}`
+const DefaultSubject = `[{{ .Status | upper }}{{ if eq .Status "firing" }}:{{ .FiringCount }}{{ end }}] {{ .Name | default "Grafana alert" }}`
 
 // Starter is a built-in template users can start from.
 type Starter struct {
@@ -23,9 +23,9 @@ var starters = []struct {
 	file, name, title, description, subject string
 }{
 	{"default.html", config.DefaultTemplateName, "Cards", "One card per alert with status, severity, values, labels and links", DefaultSubject},
-	{"compact.html", "compact", "Compact table", "One row per alert, for busy inboxes", `{{ .CommonLabels.alertname | default "Alerts" }}: {{ len .Alerts.Firing }} firing, {{ len .Alerts.Resolved }} resolved`},
-	{"summary.html", "summary", "Summary", "Big status and counts, for managers and stakeholders", `{{ if eq .Status "firing" }}Action needed{{ else }}All clear{{ end }}: {{ .CommonLabels.alertname }}`},
-	{"blank.html", "blank", "Blank", "A heading and one line per alert, to build your own", `{{ .CommonLabels.alertname }}`},
+	{"compact.html", "compact", "Compact table", "One row per alert, for busy inboxes", `{{ .Name | default "Alerts" }}: {{ .FiringCount }} firing, {{ .ResolvedCount }} resolved`},
+	{"summary.html", "summary", "Summary", "Big status and counts, for managers and stakeholders", `{{ if eq .Status "firing" }}Action needed{{ else }}All clear{{ end }}: {{ .Name }}`},
+	{"blank.html", "blank", "Blank", "A heading and one line per alert, to build your own", `{{ .Name }}`},
 }
 
 // Starters returns the built-in templates.

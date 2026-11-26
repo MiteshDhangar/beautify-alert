@@ -7,6 +7,7 @@ export interface EmailTemplate {
   subject: string;
   html: string;
   inlineCss?: boolean;
+  skipResolved?: boolean;
 }
 
 export interface Starter extends EmailTemplate {
@@ -40,7 +41,10 @@ export interface Settings {
   defaultRecipients: string;
   routing: Routing;
   templates: EmailTemplate[];
+  /** Templates as base64 gzip-compressed JSON; replaces templates when set. */
+  templatesGz?: string;
   threading?: boolean;
+  maxAlertsPerEmail?: number;
 }
 
 export interface Rendered {
@@ -60,6 +64,8 @@ export interface HistoryEntry {
   alerts: number;
   ok: boolean;
   error?: string;
+  warnings?: string[];
+  skipped?: string;
   message?: { to: string[]; subject: string; html: string; text: string };
 }
 

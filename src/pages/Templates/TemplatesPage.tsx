@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { css, cx } from '@emotion/css';
 import { GrafanaTheme2 } from '@grafana/data';
 import { PluginPage } from '@grafana/runtime';
-import { Alert, Badge, Button, LinkButton, LoadingPlaceholder, Stack, Text, useStyles2 } from '@grafana/ui';
+import { Alert, Badge, Button, LinkButton, LoadingPlaceholder, Stack, Text, Tooltip, useStyles2 } from '@grafana/ui';
+import { MAX_SETTINGS_BYTES } from '../../storage';
 import { api } from '../../api';
 import { useSettings } from '../../hooks/useSettings';
 import { EmailTemplate, Starter } from '../../types';
@@ -16,7 +17,7 @@ type Selection = { kind: 'new' } | { kind: 'template'; name: string };
 
 export default function TemplatesPage() {
   const s = useStyles2(getStyles);
-  const { settings, loading, error, save } = useSettings();
+  const { settings, storageBytes, loading, error, save } = useSettings();
   const [starters, setStarters] = useState<Starter[]>([]);
   const [selection, setSelection] = useState<Selection>({ kind: 'template', name: 'default' });
   const [dirty, setDirty] = useState(false);
@@ -124,6 +125,21 @@ export default function TemplatesPage() {
           <LinkButton variant="secondary" fill="text" size="sm" icon="book" href={prefixRoute(ROUTES.Setup)}>
             How to use templates
           </LinkButton>
+          {storageBytes !== undefined && (
+            <Tooltip content="Grafana stores at most 64 KB of settings per plugin. Templates are saved compressed.">
+              <div className={s.storage}>
+                <Text variant="bodySmall" color={storageBytes > MAX_SETTINGS_BYTES * 0.85 ? 'warning' : 'secondary'}>
+                  Storage used: {Math.ceil(storageBytes / 1024)} KB of 64 KB
+                </Text>
+                <div className={s.bar}>
+                  <div
+                    className={s.fill}
+                    style={{ width: `${Math.min(100, (storageBytes / MAX_SETTINGS_BYTES) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            </Tooltip>
+          )}
         </nav>
         <section className={s.main}>
           {selection.kind === 'new' ? (
@@ -203,4 +219,13 @@ const getStyles = (theme: GrafanaTheme2) => ({
   name: css({ fontFamily: theme.typography.fontFamilyMonospace }),
   newBtn: css({ marginTop: theme.spacing(1), justifyContent: 'center' }),
   main: css({ minWidth: 0 }),
+  storage: css({
+    marginTop: theme.spacing(2),
+    padding: theme.spacing(0, 1.5),
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(0.5),
+  }),
+  bar: css({ height: 4, borderRadius: 2, background: theme.colors.background.secondary, overflow: 'hidden' }),
+  fill: css({ height: '100%', background: theme.colors.primary.main }),
 });

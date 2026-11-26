@@ -110,7 +110,8 @@ func (a *App) handleAlert(w http.ResponseWriter, r *http.Request) {
 	}
 	status := http.StatusOK
 	if res.Failed() {
-		// A non-2xx status makes Grafana retry the notification.
+		// Grafana's webhook does not retry, but a non-2xx status marks the
+		// notification as failed in Grafana's own notification history.
 		status = http.StatusBadGateway
 	}
 	writeJSON(w, status, res)

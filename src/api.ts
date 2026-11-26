@@ -2,6 +2,7 @@ import { lastValueFrom } from 'rxjs';
 import { FetchError, getBackendSrv } from '@grafana/runtime';
 import { PLUGIN_ID } from './constants';
 import { ApiError, EmailTemplate, HistoryEntry, Rendered, Settings, Starter } from './types';
+import { MAX_SETTINGS_BYTES, SettingsTooLargeError, decodeTemplates, encodeTemplates, settingsBytes } from './storage';
 
 const RESOURCES = `/api/plugins/${PLUGIN_ID}/resources`;
 
@@ -57,12 +58,37 @@ export const pluginSettings = {
    */
   async save(patch: Partial<Settings>, secureJsonData?: Record<string, string>) {
     const current = await pluginSettings.get();
+    const jsonData = await pluginSettings.prepare(current.jsonData ?? {}, patch);
     await request('POST', `/api/plugins/${PLUGIN_ID}/settings`, {
       enabled: true,
       pinned: current.pinned,
-      jsonData: { ...(current.jsonData ?? {}), ...patch },
+      jsonData,
       secureJsonData,
     });
+  },
+  /**
+   * Merges patch into the saved jsonData. Templates are stored compressed in
+   * templatesGz; it throws SettingsTooLargeError above Grafana's 64 KB limit.
+   */
+  async prepare(current: Partial<Settings>, patch: Partial<Settings>): Promise<Partial<Settings>> {
+    const { templates, templatesGz: _ignored, ...rest } = patch;
+    const next: Partial<Settings> = { ...current, ...rest };
+    if (templates) {
+      next.templatesGz = await encodeTemplates(templates);
+      delete next.templates;
+    }
+    const bytes = settingsBytes(next);
+    if (bytes > MAX_SETTINGS_BYTES) {
+      throw new SettingsTooLargeError(bytes);
+    }
+    return next;
+  },
+  /** The saved templates, from templatesGz or plain templates. */
+  async templates(jsonData: Partial<Settings> | undefined): Promise<EmailTemplate[]> {
+    if (jsonData?.templatesGz) {
+      return decodeTemplates(jsonData.templatesGz);
+    }
+    return jsonData?.templates ?? [];
   },
 };
 

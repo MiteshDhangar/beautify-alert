@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ .CommonLabels.alertname }}</title>
+<title>{{ .Name }}</title>
 <style>
   body { margin: 0; padding: 16px; background-color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; }
   h1 { font-size: 16px; margin: 0 0 4px 0; }
@@ -17,19 +17,20 @@
 </style>
 </head>
 <body>
-  <h1>{{ .CommonLabels.alertname | default "Grafana alerts" }}</h1>
-  <p class="sub">{{ len .Alerts.Firing }} firing, {{ len .Alerts.Resolved }} resolved</p>
+  <h1>{{ .Name | default "Grafana alerts" }}</h1>
+  <p class="sub">{{ .FiringCount }} firing, {{ .ResolvedCount }} resolved</p>
   <table class="alerts" role="presentation">
     <tr><th></th><th>Alert</th><th>Summary</th><th>Started</th><th></th></tr>
     {{ range .Alerts }}
     <tr>
       <td><span class="dot" style="background-color: {{ statusColor .Status }};"></span></td>
-      <td>{{ .Labels.instance | default .Labels.alertname }}<br><span class="muted">{{ .Labels.severity }}</span></td>
-      <td>{{ .Annotations.summary }}</td>
+      <td>{{ .Labels.instance | default .Name }}<br><span class="muted">{{ .Labels.severity }}</span></td>
+      <td>{{ .Annotations.summary | default .Name }}{{ with .Error }}<br><span class="muted">{{ . }}</span>{{ end }}</td>
       <td class="muted">{{ formatTime .StartsAt "02 Jan 15:04" }}</td>
       <td>{{ with .DashboardURL }}<a href="{{ . }}">Dashboard</a>{{ end }}</td>
     </tr>
     {{ end }}
   </table>
+  {{ if .TruncatedAlerts }}<p class="sub" style="margin-top: 12px;">And {{ .TruncatedAlerts }} more not listed.</p>{{ end }}
 </body>
 </html>

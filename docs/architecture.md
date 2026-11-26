@@ -24,7 +24,7 @@ Grafana starts the backend as a separate process and creates a new app instance 
 | Package | Responsibility |
 | --- | --- |
 | `pkg/alert` | The webhook payload, which is also the template data. Sample data for previews. |
-| `pkg/config` | Settings stored in the plugin's `jsonData` (`secureJsonData` for the SMTP password), defaults and validation. |
+| `pkg/config` | Settings stored in the plugin's `jsonData` (`secureJsonData` for the SMTP password), defaults and validation. Templates are stored gzip-compressed in `templatesGz`. |
 | `pkg/routing` | Splits one notification into emails: which template each alert uses and who receives it. |
 | `pkg/templates` | Renders subject and HTML, inlines CSS, builds the plain-text part. Holds the starter templates. |
 | `pkg/delivery` | The `Sender` interface and the SMTP sender. Threading headers. |
@@ -40,7 +40,7 @@ All under `/api/plugins/prudentbee939-beautifyalert-app/resources/`. Grafana han
 
 | Endpoint | Minimum role | Purpose |
 | --- | --- | --- |
-| `POST /alert` | Editor | Webhook target. Returns 502 when any email fails, so Grafana retries. |
+| `POST /alert` | Editor | Webhook target. Returns 502 when any email fails, which Grafana records as a failed notification. |
 | `GET /starters` | Viewer | Starter templates and sample data |
 | `POST /preview` | Viewer | Renders an unsaved template |
 | `POST /test` | Editor | Sends an unsaved template with sample data |
@@ -58,6 +58,15 @@ Saving settings and templates uses Grafana's plugin settings API (`POST /api/plu
 
 Callers do not change.
 
+## Delivery rules
+
+For each planned email:
+
+1. Recipients that are not valid email addresses are skipped and listed as a warning. If none is left, the email fails.
+2. At most *Alerts per email* alerts are listed (default 40, firing first). The rest are counted in `.TruncatedAlerts`; `.FiringCount` and `.ResolvedCount` still count every alert.
+3. If the template fails while rendering, the email is rendered with the built-in template and the error is recorded as a warning, so the alert still reaches people.
+4. If the template has **Resolved-only emails** turned off and every alert in the email is resolved, nothing is sent and the log shows it as skipped.
+
 ## Security
 
 - Values from alerts are escaped by `html/template`. `safeHTML` is the only way to insert raw HTML, and templates are written by admins.
@@ -70,4 +79,5 @@ Callers do not change.
 ## Known limits
 
 - The delivery log is in memory: the last 500 emails per Grafana server, cleared on restart. With several Grafana servers behind a load balancer, each keeps its own log.
-- Templates live in the plugin's `jsonData`. With a MySQL database, the column may limit total template size to about 64 KB. This has not been measured yet.
+- Grafana limits a plugin's `jsonData` to 65,535 bytes on every database (`maxJSONDataBytes` in Grafana's plugin settings service). Templates are saved gzip-compressed, which fits about 50 typical templates. The Templates page shows how much is used and refuses to save past the limit with a clear message.
+- Grafana's webhook contact point does not retry a failed call. The SMTP sender retries failures that may pass on a second try (refused connection, timeout, temporary 4xx reply) twice, after 1 and 3 seconds, within Grafana's 30 second webhook timeout. Wrong passwords, rejected recipients and TLS errors are not retried. Use **Resend** in the delivery log for anything that still failed.

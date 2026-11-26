@@ -93,7 +93,16 @@ export function TemplateEditor(props: Props) {
     ed.focus();
   };
 
+  const renamed = !builtin && draft.name !== template.name;
   const save = async () => {
+    if (
+      renamed &&
+      !window.confirm(
+        `Alert rules labeled ${settings.routing.templateLabel}=${template.name} will use the default template until you change their label to ${draft.name}. Rename anyway?`
+      )
+    ) {
+      return;
+    }
     setSaving(true);
     setNotice(undefined);
     try {
@@ -176,6 +185,21 @@ export function TemplateEditor(props: Props) {
           />
         </Field>
       </div>
+      <Field
+        label="Resolved-only emails"
+        description="Turn off for rules whose query only returns rows in a time window. When the window ends every alert resolves at once, and that email would wrongly say the problem is fixed."
+      >
+        <Stack alignItems="center" gap={1}>
+          <Switch
+            id="send-resolved"
+            value={!draft.skipResolved}
+            onChange={(e) => update({ skipResolved: !e.currentTarget.checked })}
+          />
+          <label htmlFor="send-resolved">
+            <Text variant="bodySmall">{draft.skipResolved ? 'Not sent' : 'Sent'}</Text>
+          </label>
+        </Stack>
+      </Field>
       <Field label="Subject" description="Go template, one line">
         <Input
           className={s.mono}
@@ -252,7 +276,8 @@ export function TemplateEditor(props: Props) {
         <Stack alignItems="center" wrap="wrap">
           <Button
             onClick={save}
-            disabled={!canSave || saving || !!nameError || !dirty}
+            disabled={!canSave || saving || !!nameError || !dirty || !!renderError}
+            tooltip={renderError ? 'Fix the template error shown in the preview first' : undefined}
             icon={saving ? 'spinner' : 'save'}
             data-testid="template-save"
           >

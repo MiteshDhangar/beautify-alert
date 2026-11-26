@@ -69,3 +69,35 @@ func TestValidateTemplateName(t *testing.T) {
 		}
 	}
 }
+
+func TestValidAddresses(t *testing.T) {
+	valid, invalid := ValidAddresses([]string{"a@x.com", "Ops Team <ops@x.com>", "not-an-email", "x@", ""})
+	if len(valid) != 2 || len(invalid) != 3 {
+		t.Errorf("valid %q invalid %q", valid, invalid)
+	}
+}
+
+func TestMaxAlertsDefault(t *testing.T) {
+	s, _ := Load(backend.AppInstanceSettings{})
+	if s.MaxAlertsPerEmail != DefaultMaxAlertsPerEmail {
+		t.Errorf("max = %d", s.MaxAlertsPerEmail)
+	}
+}
+
+func TestCompressedTemplatesReplacePlain(t *testing.T) {
+	gz, err := EncodeTemplates([]Template{{Name: "payments", HTML: "<p>hi</p>"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := json.Marshal(map[string]any{"templates": []Template{{Name: "old"}}, "templatesGz": gz})
+	s, err := Load(backend.AppInstanceSettings{JSONData: data})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Templates) != 1 || s.Templates[0].Name != "payments" || s.TemplatesGz != "" {
+		t.Errorf("templates %+v", s.Templates)
+	}
+	if _, err := Load(backend.AppInstanceSettings{JSONData: json.RawMessage(`{"templatesGz":"not base64!"}`)}); err == nil {
+		t.Error("bad templatesGz should fail")
+	}
+}

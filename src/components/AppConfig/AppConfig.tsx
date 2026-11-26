@@ -53,7 +53,7 @@ const AppConfig = ({ plugin }: AppConfigProps) => {
     setNotice(undefined);
     try {
       // Templates are edited on the Templates page; keep whatever is saved.
-      const { templates: _ignored, ...rest } = form;
+      const { templates: _ignored, templatesGz: _ignoredGz, ...rest } = form;
       const secure = password ? { smtpPassword: password } : passwordSet ? undefined : { smtpPassword: '' };
       await pluginSettings.save(rest, secure);
       // Grafana keeps the plugin settings in memory per page load.
@@ -206,6 +206,21 @@ const AppConfig = ({ plugin }: AppConfigProps) => {
             />
           </Field>
         </div>
+        <Field
+          label="Alerts per email"
+          description="Longer groups list the first ones and say how many more there are. Gmail cuts off emails larger than about 102 KB, roughly 40 to 50 alerts with the default template."
+        >
+          <Input
+            type="number"
+            width={16}
+            min={1}
+            max={1000}
+            value={form.maxAlertsPerEmail ?? 40}
+            onChange={(e) =>
+              setForm({ ...form, maxAlertsPerEmail: Math.min(1000, Math.max(1, Number(e.currentTarget.value) || 40)) })
+            }
+          />
+        </Field>
         <Field
           label="Thread emails"
           description="Show the firing and resolved emails of one alert group as one conversation in mail clients"
