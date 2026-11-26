@@ -18,7 +18,8 @@ Microsoft 365 no longer accepts password login for SMTP, and Grafana's SMTP sett
 - Gmail with OAuth; SMTP with XOAUTH2
 - Amazon SES, SendGrid, Mailgun, Postmark
 - Template import and export as JSON; a default time zone per template
-- Paste a real alert payload to preview with your own data
+- Preview with a real recent alert from the delivery log, or a pasted payload, so templates for SQL rules show real columns
+- Test on Grafana Cloud and older Grafana versions, and lower the minimum version
 
 ## 0.3: Data in emails
 

@@ -6,7 +6,7 @@
   "backend": true,
   "executable": "gpx_beautifyalert",
   "info": {
-    "keywords": ["alerting", "email", "notifications", "html", "templates", "smtp"],
+    "keywords": ["alerting", "email", "notifications", "html", "templates", "smtp", "alert email", "email templates"],
     "description": "Send Grafana alerts as designed HTML emails: your own templates per alert, live preview, test sends and a delivery log.",
     "author": {
       "name": "Mitesh Dhangar"
@@ -21,26 +21,42 @@
         "url": "https://github.com/MiteshDhangar/beautify-alert#readme"
       },
       {
+        "name": "Getting started",
+        "url": "https://github.com/MiteshDhangar/beautify-alert/blob/main/docs/getting-started.md"
+      },
+      {
         "name": "Report an issue",
         "url": "https://github.com/MiteshDhangar/beautify-alert/issues"
       }
     ],
     "screenshots": [
       {
-        "name": "Template editor",
+        "name": "Template editor with live preview",
         "path": "img/screenshots/templates.png"
       },
       {
-        "name": "Email",
-        "path": "img/screenshots/email.png"
+        "name": "Email from a SQL alert rule",
+        "path": "img/screenshots/email-query-rows.png"
+      },
+      {
+        "name": "Default email layout",
+        "path": "img/screenshots/email-default.png"
+      },
+      {
+        "name": "Query failure email",
+        "path": "img/screenshots/email-query-error.png"
       },
       {
         "name": "Delivery log",
         "path": "img/screenshots/delivery-log.png"
       },
       {
-        "name": "Setup",
+        "name": "One-click setup",
         "path": "img/screenshots/setup.png"
+      },
+      {
+        "name": "New template from a starter",
+        "path": "img/screenshots/new-template.png"
       }
     ],
     "version": "%VERSION%",

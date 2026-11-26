@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4
+
+- Fix: the delivery log was shared by all Grafana organizations; each organization now has its own.
+- New docs: getting started, configuration with SMTP settings for common providers, routing, creating templates, troubleshooting.
+- New examples: a template for SQL rules that return one row per problem, and a provisioning file.
+- New screenshots, issue and pull request templates, code of conduct.
+
 ## 0.1.3
 
 Found in pre-release testing with a real MySQL alert rule.

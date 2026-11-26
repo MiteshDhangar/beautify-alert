@@ -1,8 +1,8 @@
 // Package history keeps a log of the emails the plugin sent or failed to
 // send, so users can confirm delivery, see errors and resend.
 //
-// The log is in memory and shared by every app instance in the plugin
-// process (Grafana creates a new instance when settings change). It holds
+// The log is in memory, one per Grafana organization, and survives app
+// instance changes (Grafana creates a new instance when settings change). It holds
 // the most recent entries only and is cleared when Grafana restarts. When
 // Grafana runs on several servers, each server has its own log.
 package history
@@ -65,8 +65,28 @@ type Log struct {
 // New returns an empty log.
 func New() *Log { return &Log{entries: make([]Entry, Capacity)} }
 
-// Default is the process-wide log.
-var Default = New()
+// Each Grafana organization has its own log, so admins of one organization
+// never see another organization's emails.
+var (
+	orgsMu sync.Mutex
+	orgs   = map[string]*Log{}
+)
+
+// ForNamespace returns the log of the organization with Grafana namespace ns
+// ("default" for the main organization), creating it on first use.
+func ForNamespace(ns string) *Log {
+	if ns == "" {
+		ns = "default"
+	}
+	orgsMu.Lock()
+	defer orgsMu.Unlock()
+	l, ok := orgs[ns]
+	if !ok {
+		l = New()
+		orgs[ns] = l
+	}
+	return l
+}
 
 // Add records e, filling in its ID and time when empty, and returns it.
 func (l *Log) Add(e Entry) Entry {

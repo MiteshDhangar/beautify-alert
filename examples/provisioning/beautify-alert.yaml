@@ -1,0 +1,50 @@
+# Beautify Alert settings and templates from a file.
+#
+# Copy to Grafana's provisioning/plugins/ directory, edit, and restart Grafana.
+# Grafana applies this file at every start and replaces what was saved in the
+# UI, so keep this file as the source of truth.
+#
+# The SMTP password comes from the environment variable SMTP_PASSWORD.
+apiVersion: 1
+
+apps:
+  - type: prudentbee939-beautifyalert-app
+    org_id: 1
+    disabled: false
+    jsonData:
+      delivery:
+        provider: smtp
+        fromAddress: alerts@example.com
+        fromName: Grafana Alerts
+        replyTo: oncall@example.com
+        smtp:
+          host: smtp.example.com
+          port: 587
+          security: starttls # starttls, tls or none
+          username: grafana@example.com
+          skipVerify: false
+      defaultRecipients: oncall@example.com
+      maxAlertsPerEmail: 40
+      threading: true
+      routing:
+        templateLabel: email_template
+        recipientsLabel: email_to
+      templates:
+        - name: ops-digest
+          description: One line per alert for the on-call inbox
+          recipients: oncall@example.com
+          subject: '[{{ .Status | upper }}] {{ .Name }}: {{ .FiringCount }} firing'
+          html: |
+            <h2 style="font-family: Helvetica, Arial, sans-serif; margin: 0 0 8px 0;">{{ .Name }}</h2>
+            <table style="font-family: Helvetica, Arial, sans-serif; font-size: 13px; border-collapse: collapse;">
+              {{ range .Alerts }}
+              <tr>
+                <td style="padding: 4px 12px 4px 0; color: {{ statusColor .Status }}; font-weight: bold;">{{ .Status }}</td>
+                <td style="padding: 4px 12px 4px 0;">{{ .Labels.instance | default .Name }}</td>
+                <td style="padding: 4px 0; color: #555555;">{{ .Annotations.summary }}{{ with .Error }} ({{ . }}){{ end }}</td>
+              </tr>
+              {{ end }}
+            </table>
+            {{ if .TruncatedAlerts }}<p>And {{ .TruncatedAlerts }} more.</p>{{ end }}
+    secureJsonData:
+      smtpPassword: $SMTP_PASSWORD

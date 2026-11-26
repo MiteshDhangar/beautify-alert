@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  Table of query rows: for SQL alert rules that return one row per problem
+  (for example one row per order, host or customer). Grafana turns each row
+  into an alert and every string column into a label; this template shows one
+  table row per alert with those labels as columns.
+
+  Change `$columns` to the label names your query returns.
+-->
+<style>
+  body { margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; }
+  .wrap { width: 100%; padding: 24px 12px; background-color: #f1f5f9; }
+  .card { width: 100%; max-width: 640px; background-color: #ffffff; border-radius: 12px; }
+  .head { padding: 24px 28px 8px 28px; }
+  .state { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .title { font-size: 22px; font-weight: 800; margin-top: 6px; }
+  .sub { font-size: 14px; color: #475569; margin-top: 8px; line-height: 1.5; }
+  table.rows { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.rows th { text-align: left; color: #64748b; font-weight: 600; padding: 8px 8px 8px 0; border-bottom: 1px solid #e2e8f0; }
+  table.rows td { padding: 9px 8px 9px 0; border-bottom: 1px solid #f1f5f9; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #ffffff; }
+  .problem { margin: 16px 28px 0 28px; padding: 12px 14px; border-radius: 8px; background-color: #fef2f2; color: #991b1b; font-size: 13px; }
+  .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; background-color: #0f172a; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; }
+  .foot { padding: 20px 28px; font-size: 12px; color: #94a3b8; }
+</style>
+</head>
+{{- $columns := list "order_id" "store" "status" -}}
+<body>
+<table role="presentation" class="wrap" cellpadding="0" cellspacing="0"><tr><td align="center">
+<table role="presentation" class="card" cellpadding="0" cellspacing="0">
+  <tr><td class="head">
+    {{ if gt .FiringCount 0 }}
+    <div class="state" style="color: #b45309;">Needs attention</div>
+    {{ else }}
+    <div class="state" style="color: #15803d;">Resolved</div>
+    {{ end }}
+    <div class="title">{{ .Name | default "Query check" }}</div>
+    <div class="sub">{{ .FiringCount }} row{{ if ne .FiringCount 1 }}s{{ end }} found &middot; {{ .ResolvedCount }} resolved</div>
+  </td></tr>
+  {{ range .Alerts }}{{ if eq .Problem "query-error" }}
+  <tr><td><div class="problem"><strong>The check could not run.</strong> {{ .Error }}</div></td></tr>
+  {{ end }}{{ end }}
+  <tr><td style="padding: 12px 28px 0 28px;">
+    <table class="rows" role="presentation">
+      <tr>{{ range $columns }}<th>{{ . }}</th>{{ end }}<th></th></tr>
+      {{ range .Alerts }}{{ if not .Problem }}
+      {{ $labels := .Labels }}
+      <tr>
+        {{ range $columns }}<td>{{ index $labels . }}</td>{{ end }}
+        <td><span class="pill" style="background-color: {{ statusColor .Status }};">{{ .Status }}</span></td>
+      </tr>
+      {{ end }}{{ end }}
+    </table>
+    {{ if .TruncatedAlerts }}<p class="sub">And {{ .TruncatedAlerts }} more rows not listed.</p>{{ end }}
+  </td></tr>
+  <tr><td style="padding: 24px 28px 0 28px;">
+    {{ with (index .Alerts 0).GeneratorURL }}<a href="{{ . }}" class="btn">Open alert rule</a>{{ end }}
+  </td></tr>
+  <tr><td class="foot">Sent by Grafana with Beautify Alert</td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>

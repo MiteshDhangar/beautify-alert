@@ -1,110 +1,118 @@
 # Beautify Alert
 
-Send Grafana alerts as designed HTML emails.
+**Designed HTML emails for Grafana alerts.** Write your own email templates in HTML and CSS, pick one per alert with a label, preview it live, and send it through any SMTP server.
 
-Grafana's email contact point lets you change the subject and the text of an alert email, but not its layout: HTML in notification templates is escaped. Beautify Alert is a Grafana app plugin that renders each alert with an HTML template you write, picked per alert with a label, and sends it through your SMTP server.
+[![Release](https://img.shields.io/github/v/release/MiteshDhangar/beautify-alert)](https://github.com/MiteshDhangar/beautify-alert/releases)
+[![CI](https://github.com/MiteshDhangar/beautify-alert/actions/workflows/ci.yml/badge.svg)](https://github.com/MiteshDhangar/beautify-alert/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/MiteshDhangar/beautify-alert)](LICENSE)
+![Grafana](https://img.shields.io/badge/Grafana-13.2%2B-orange)
 
-![Template editor with live preview](src/img/screenshots/templates.png)
+Beautify Alert is a free, open-source Grafana app plugin for anyone who runs Grafana alerting. It is not tied to any company or product.
+
+| Template editor | Email it sends |
+| --- | --- |
+| ![Template editor with live preview](src/img/screenshots/templates.png) | ![Email from a SQL alert rule](src/img/screenshots/email-query-rows.png) |
+
+## Why
+
+Grafana's email contact point lets you change the subject and the text of an alert email, but not its layout: HTML in notification templates is escaped, so every alert email looks the same. Beautify Alert renders alerts with your own HTML instead, so you can send:
+
+- a branded email to customers or management,
+- a table of the rows a SQL alert found (orders, hosts, payments),
+- a compact one-line-per-alert digest for a busy on-call inbox,
+- a clear "the check could not run" email when a query fails, instead of `DatasourceError`.
 
 ## Features
 
-- **HTML templates.** Write full HTML and CSS with Go templates, the same syntax as Grafana's own notification templates. CSS in `<style>` is moved into `style` attributes before sending, so Gmail and Outlook show it.
-- **One template per alert.** Add the label `email_template=payments` to an alert rule and its emails use the `payments` template. Alerts without the label use `default`.
-- **Recipients per alert or per template.** The `email_to` label, the template's own recipients, or the default list, in that order.
-- **Live preview and test emails.** See the email update as you type, with firing and resolved sample alerts, then send a test to your inbox.
-- **Starter templates.** Cards, compact table, summary for stakeholders, and blank.
-- **One-click setup.** The Setup page creates the service account, its token and the webhook contact point for you.
-- **Delivery log.** Every email sent, failed or skipped, with errors, warnings, a full view of the email and a resend button.
-- **Safe delivery.** Invalid addresses are skipped instead of blocking the email, a template that breaks on real data falls back to the built-in layout, and short SMTP failures are retried (Grafana's webhook does not retry).
-- **Large groups.** Emails list up to 40 alerts by default and say how many more there are, so Gmail does not cut them off.
-- **Time-window rules.** Turn off resolved-only emails per template, for rules whose query only returns rows during a window.
-- **Grafana's error alerts.** Query failures and no-data alerts name the rule and show the error.
-- **Email threading.** The firing and resolved emails of one alert group carry the same `References` header, so mail clients can show them as one conversation.
-- **Templates as code.** Templates and settings can be provisioned from YAML and kept in Git.
+- **HTML and CSS templates** in Go template syntax, the same syntax as Grafana's notification templates. CSS in `<style>` is inlined so Gmail and Outlook show it.
+- **A template per alert.** Add `email_template=payments` to an alert rule and its emails use the `payments` template.
+- **Recipients per alert or per template**, with a default list.
+- **Live preview** with sample firing and resolved alerts, and **test emails**.
+- **Starter templates:** cards, compact table, summary for stakeholders, blank.
+- **One-click setup** of the service account, token and webhook contact point.
+- **Delivery log** of every email sent, failed or skipped, with errors, warnings, a full view of the email and **resend**.
+- **Safe delivery:** invalid addresses are skipped instead of blocking the email, a template that breaks on real data falls back to the built-in layout, and short SMTP failures are retried.
+- **Large alert groups** list up to 40 alerts per email (configurable) and say how many more there are.
+- **Time-window rules:** turn off resolved-only emails per template.
+- **Threading:** firing and resolved emails of one alert group are linked as one conversation.
+- **Templates as code** through Grafana provisioning.
+- **Per-organization** settings and delivery log.
+
+## Quick start
+
+1. **Install** the plugin ([getting started](docs/getting-started.md#install)).
+2. **Configure email:** Administration, Plugins, Beautify Alert, Configuration. Enter your SMTP server, click **Test connection**, then **Save settings**. Recipes for Gmail, Amazon SES, SendGrid, Mailgun and others are in [configuration](docs/configuration.md#smtp-providers).
+3. **Connect alerting:** open Beautify Alert, **Setup**, and click **Create contact point**.
+4. **Route alerts:** pick the **Beautify Alert** contact point in an alert rule, or route to it in a notification policy.
+5. **Pick a template:** create one on the **Templates** page and add `email_template=<name>` to the alert rule.
+
+That's it. The rule's next notification arrives as your HTML email, and appears in the **Delivery log**.
 
 ## How it works
 
 ```
-Alert rule ──► Grafana alerting ──► Webhook contact point ──► Beautify Alert backend ──► SMTP ──► Inbox
-               (labels pick the                (service account          (picks template,
-                template)                        token)                   renders, sends)
+Alert rule ──► Grafana alerting ──► Webhook contact point ──► Beautify Alert ──► SMTP ──► Inbox
+  labels pick      (notification         (service account          picks the template,
+  the template      policies)             token)                   renders and sends
 ```
 
-Grafana plugins cannot add new contact point types, so the plugin receives alerts from Grafana's own webhook contact point at `/api/plugins/prudentbee939-beautifyalert-app/resources/alert`. Grafana authenticates that call with a service account token. See [docs/architecture.md](docs/architecture.md).
+Grafana plugins cannot add new contact point types, so Grafana sends alerts to the plugin through its built-in webhook contact point. The Setup page creates that contact point for you. Details: [architecture](docs/architecture.md).
 
-## Requirements
+## Documentation
 
-- Grafana 13.2 or later, self-hosted (OSS or Enterprise).
-- An SMTP server the Grafana server can reach.
-
-## Install
-
-Until the plugin is in the Grafana catalog, install it from a release zip:
-
-```bash
-unzip prudentbee939-beautifyalert-app-<version>.zip -d /var/lib/grafana/plugins/
-```
-
-Allow it as an unsigned plugin in `grafana.ini`, then restart Grafana:
-
-```ini
-[plugins]
-allow_loading_unsigned_plugins = prudentbee939-beautifyalert-app
-```
-
-## Set up
-
-1. **Configuration:** open Administration, Plugins, Beautify Alert, Configuration. Enter the SMTP host, port, security, login and the from address. Click **Test connection**, then **Save settings**.
-2. **Setup page:** open Beautify Alert, Setup, and click **Create contact point**. If the Grafana server cannot reach its own public URL, change the webhook URL to one it can reach, such as `http://localhost:3000/api/plugins/prudentbee939-beautifyalert-app/resources/alert`.
-3. **Route alerts:** pick the `Beautify Alert` contact point in an alert rule, or route to it in a notification policy.
-4. **Templates:** create a template, then add `email_template=<name>` to the alert rules that should use it.
-
-## Choosing a template and recipients
-
-For each alert in a notification:
-
-| | First match wins |
+| Guide | What it covers |
 | --- | --- |
-| Template | `?template=` on the webhook URL, the `email_template` label, the `email_template` annotation, `default` |
-| Recipients | `?to=` on the webhook URL, the `email_to` label, the `email_to` annotation, the template's recipients, the default recipients |
+| [Getting started](docs/getting-started.md) | Install, configure, connect and send your first email, step by step |
+| [Configuration](docs/configuration.md) | Every setting, and SMTP settings for Gmail, Microsoft 365, Amazon SES, SendGrid, Mailgun, Postmark and local relays |
+| [Routing alerts](docs/routing.md) | How alerts pick a template and recipients, with notification policy examples |
+| [Creating templates](docs/creating-templates.md) | Write your own template, with examples |
+| [Template reference](docs/templates.md) | Every field and function available in templates |
+| [Examples](examples/) | Ready-to-use templates and a provisioning file |
+| [Provisioning](docs/provisioning.md) | Keep settings and templates in Git |
+| [Troubleshooting](docs/troubleshooting.md) | No email, SMTP errors, Gmail clipping, permissions |
+| [Architecture](docs/architecture.md) | How the plugin is built, endpoints, security |
 
-Alerts that end up with the same template and recipients are sent as one email. Both label names can be changed on the Configuration page.
+## Screenshots
 
-Example: a notification has three alerts. Two have `email_template=payments`, one has no label. The plugin sends two emails: the `payments` email with two alerts to the `payments` template's recipients, and the `default` email with one alert to the default recipients.
+| | |
+| --- | --- |
+| ![Delivery log](src/img/screenshots/delivery-log.png) | ![Setup](src/img/screenshots/setup.png) |
+| **Delivery log** with sent, warning and skipped emails | **Setup** creates the contact point in one click |
+| ![Default email](src/img/screenshots/email-default.png) | ![Query failure email](src/img/screenshots/email-query-error.png) |
+| **Default template** | **Query failure** names the rule and shows the error |
 
-## Writing templates
+## FAQ
 
-```html
-<h2 style="color: {{ statusColor .Status }}">{{ .CommonLabels.alertname }}</h2>
-{{ range .Alerts }}
-  <p>{{ .Annotations.summary }}, started {{ since .StartsAt }} ago</p>
-  <a href="{{ .DashboardURL }}">Open dashboard</a>
-{{ end }}
-```
+**Does it replace Grafana's email contact point?** No, it adds a second way to send email. Your existing contact points keep working. You choose per alert rule or per notification policy which alerts go through Beautify Alert.
 
-Values from alerts are HTML-escaped. The template reference lists every field and function: [docs/templates.md](docs/templates.md).
+**Which Grafana versions?** Grafana 13.2 or later, self-hosted (OSS or Enterprise). Grafana Cloud has not been tested yet.
 
-## Development
+**Does it use Grafana's `[smtp]` settings?** No. It has its own SMTP settings on its Configuration page, stored encrypted by Grafana.
+
+**Can I use my existing Grafana notification templates?** The fields are the same (`.Alerts`, `.CommonLabels`, `.Labels`, `.Annotations`, ...), so most template code works. Named templates defined in Grafana's alerting UI are not loaded.
+
+**How many templates can I have?** Grafana stores at most 64 KB of settings per plugin. Templates are saved compressed, which fits about 50 typical templates. The Templates page shows how much is used.
+
+**Does Grafana retry failed emails?** Grafana's webhook contact point does not retry, so the plugin retries short SMTP failures itself. Anything that still fails can be resent from the delivery log.
+
+**Does it collect any data?** No. The plugin sends nothing anywhere except your emails to your SMTP server.
+
+## Roadmap
+
+More email providers (Microsoft 365 with OAuth, Amazon SES and SendGrid APIs), previews with real alert data, charts and query results in emails, and Slack and Teams layouts. See the [roadmap](ROADMAP.md) and vote in [issues](https://github.com/MiteshDhangar/beautify-alert/issues).
+
+## Contributing
+
+Bug reports, templates and code are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md). To develop locally:
 
 ```bash
-npm install
-npm run dev            # frontend, rebuilds on change
-mage -v build:linux    # backend, rerun after Go changes
-npm run server         # Grafana plus Mailpit in Docker
+npm install && npm run dev          # frontend, rebuilds on change
+mage -v build:linux                 # backend, rerun after Go changes
+docker compose up                   # Grafana on :3000 and Mailpit on :8025
 ```
 
-Grafana runs at http://localhost:3000 and the emails it sends appear in Mailpit at http://localhost:8025.
-
-Tests:
-
-```bash
-go test ./pkg/...      # backend
-npm run test:ci        # frontend unit tests
-npm run e2e            # browser tests against the running Grafana
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the [roadmap](ROADMAP.md).
+Every email the local Grafana sends appears in Mailpit at http://localhost:8025.
 
 ## License
 
-Apache 2.0. See [LICENSE](LICENSE).
+[Apache 2.0](LICENSE). Made by [Mitesh Dhangar](https://github.com/MiteshDhangar).

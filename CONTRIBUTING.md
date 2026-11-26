@@ -8,7 +8,7 @@ Open an [issue](https://github.com/MiteshDhangar/beautify-alert/issues) with you
 
 ## Share a template
 
-Good templates can ship as starters. Add an HTML file to `pkg/templates/starters/`, register it in `pkg/templates/starters.go` with a title, description and subject, and run `go test ./pkg/templates/` (every starter must render the sample alerts). Use tables for layout and keep CSS in one `<style>` block.
+Share a template by adding it to [`examples/templates/`](examples/templates/) with a comment at the top saying what it is for and which labels it expects. Templates that suit most users can become starters: add the file to `pkg/templates/starters/`, register it in `pkg/templates/starters.go` with a title, description and subject, and run `go test ./pkg/templates/` (every starter must render the sample alerts). Use tables for layout, keep CSS in one `<style>` block, and handle `.Problem` for Grafana's error alerts.
 
 ## Change the code
 

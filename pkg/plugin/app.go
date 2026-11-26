@@ -13,7 +13,6 @@ import (
 
 	"github.com/MiteshDhangar/beautify-alert/pkg/config"
 	"github.com/MiteshDhangar/beautify-alert/pkg/delivery"
-	"github.com/MiteshDhangar/beautify-alert/pkg/history"
 	"github.com/MiteshDhangar/beautify-alert/pkg/notify"
 )
 
@@ -49,7 +48,7 @@ func newApp(settings config.Settings, sender delivery.Sender, configErr error) *
 	a := &App{
 		settings:  settings,
 		configErr: configErr,
-		service:   &notify.Service{Settings: settings, Sender: sender, Log: history.Default, Now: time.Now},
+		service:   &notify.Service{Settings: settings, Sender: sender, Now: time.Now},
 	}
 	mux := http.NewServeMux()
 	a.routes(mux)

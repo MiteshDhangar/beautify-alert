@@ -38,6 +38,16 @@ func (a *App) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /verify", a.requireRole("Admin", a.handleVerify))
 }
 
+// svc returns the notify service bound to the delivery log of the caller's
+// Grafana organization.
+func (a *App) svc(r *http.Request) *notify.Service {
+	s := *a.service
+	if s.Log == nil {
+		s.Log = history.ForNamespace(backend.PluginConfigFromContext(r.Context()).Namespace)
+	}
+	return &s
+}
+
 // requireRole rejects callers whose org role is below min. It stops Viewers
 // from sending email through the plugin.
 func (a *App) requireRole(min string, next http.HandlerFunc) http.HandlerFunc {
@@ -97,7 +107,7 @@ func (a *App) handleAlert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := r.URL.Query()
-	res := a.service.Handle(r.Context(), n, routing.Overrides{Template: q.Get("template"), Recipients: q.Get("to")})
+	res := a.svc(r).Handle(r.Context(), n, routing.Overrides{Template: q.Get("template"), Recipients: q.Get("to")})
 	for _, e := range res.Emails {
 		if e.OK {
 			log.DefaultLogger.Info("Sent alert email", "template", e.Template, "to", strings.Join(e.To, ","), "alerts", e.Alerts)
@@ -183,7 +193,7 @@ func (a *App) handleTest(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	entry, err := a.service.SendTest(r.Context(), req.Template, config.SplitAddresses(req.To))
+	entry, err := a.svc(r).SendTest(r.Context(), req.Template, config.SplitAddresses(req.To))
 	if err != nil {
 		var te *templates.Error
 		status := http.StatusBadGateway
@@ -198,12 +208,12 @@ func (a *App) handleTest(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, entry.Summary())
 }
 
-func (a *App) handleHistory(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"entries": a.service.Log.List(history.Capacity), "capacity": history.Capacity})
+func (a *App) handleHistory(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"entries": a.svc(r).Log.List(history.Capacity), "capacity": history.Capacity})
 }
 
 func (a *App) handleHistoryEntry(w http.ResponseWriter, r *http.Request) {
-	e, ok := a.service.Log.Get(r.PathValue("id"))
+	e, ok := a.svc(r).Log.Get(r.PathValue("id"))
 	if !ok {
 		writeError(w, http.StatusNotFound, errors.New("log entry not found; the log keeps recent emails only and is cleared when Grafana restarts"))
 		return
@@ -212,7 +222,7 @@ func (a *App) handleHistoryEntry(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleResend(w http.ResponseWriter, r *http.Request) {
-	entry, err := a.service.Resend(r.Context(), r.PathValue("id"))
+	entry, err := a.svc(r).Resend(r.Context(), r.PathValue("id"))
 	if err != nil {
 		status := http.StatusBadGateway
 		if errors.Is(err, notify.ErrNotResendable) {

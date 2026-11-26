@@ -38,7 +38,9 @@ apps:
       smtpPassword: $SMTP_PASSWORD
 ```
 
-Grafana expands `$SMTP_PASSWORD` from the environment.
+Grafana expands `$SMTP_PASSWORD` from the environment. A complete example is in [examples/provisioning](../examples/provisioning/beautify-alert.yaml).
+
+Grafana stores at most 64 KB of plugin settings, including provisioned ones. Templates in a provisioning file are stored as written (not compressed), so keep large template sets in the UI, or keep them short. Grafana rejects settings over the limit, provisioned ones included.
 
 Grafana applies this file each time it starts and replaces the settings saved in the UI. Edits made in the UI last until the next restart, so treat the file as the source of truth.
 

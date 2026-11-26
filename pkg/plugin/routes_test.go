@@ -186,3 +186,27 @@ func TestNotConfiguredIsClear(t *testing.T) {
 		t.Errorf("%d %s", rec.status, rec.body)
 	}
 }
+
+func TestDeliveryLogIsPerOrganization(t *testing.T) {
+	a := newApp(testSettings(), &fakeSender{}, nil) // real per-org logs
+	callOrg := func(org string, method, path string, body any) recorder {
+		b, _ := json.Marshal(body)
+		var rec recorder
+		if err := a.CallResource(context.Background(), &backend.CallResourceRequest{
+			PluginContext: backend.PluginContext{Namespace: org, User: &backend.User{Login: "u", Role: "Admin"}},
+			Method:        method, Path: strings.TrimPrefix(path, "/"), URL: strings.TrimPrefix(path, "/"), Body: b,
+		}, &rec); err != nil {
+			t.Fatal(err)
+		}
+		return rec
+	}
+	callOrg("org-9001", http.MethodPost, "/test", previewRequest{Template: config.Template{HTML: "<p>org one</p>"}, To: "a@x.com"})
+	count := func(org string) int {
+		var list struct{ Entries []history.Entry }
+		_ = json.Unmarshal(callOrg(org, http.MethodGet, "/history", nil).body, &list)
+		return len(list.Entries)
+	}
+	if count("org-9001") != 1 || count("org-9002") != 0 {
+		t.Errorf("org 9001 sees %d, org 9002 sees %d", count("org-9001"), count("org-9002"))
+	}
+}

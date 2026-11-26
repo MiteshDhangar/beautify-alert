@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/MiteshDhangar/beautify-alert#documentation
+    about: Getting started, configuration, templates and troubleshooting
+  - name: Security problem
+    url: https://github.com/MiteshDhangar/beautify-alert/security/advisories/new
+    about: Report security problems privately, not in a public issue
