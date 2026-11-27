@@ -48,6 +48,16 @@ Beautify Alert has its own SMTP settings. It does not use the `[smtp]` section o
 
 How these combine: [routing alerts](routing.md).
 
+## Limits
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| Allowed recipient domains | Any domain | Every email, alert or test, only goes to addresses in these domains, for example `example.com, example.org`. Subdomains are not included; list each one. Other recipients are skipped with a warning in the delivery log. |
+| Max recipients per email | 50 | Extra recipients are skipped with a warning. Many providers refuse more than 50 to 100 per email. |
+| Max emails per notification | 20 | One Grafana notification becomes one email per template and recipient list. When alerts in one group name more lists than this, the rest are not sent and the delivery log says so. |
+
+Set allowed recipient domains if alert rules are written by people who should not be able to email outside your company: anyone who can edit alert rules can set the `email_to` label.
+
 ## Template settings
 
 Each template on the **Templates** page has:
@@ -68,7 +78,7 @@ Grafana stores at most 64 KB of settings per plugin. Templates are saved compres
 
 | Action | Minimum Grafana role |
 | --- | --- |
-| See templates, preview | Viewer can call the preview; the pages are shown to Editors |
-| Send test emails, see the delivery log, resend | Editor |
+| See templates, preview | Editor |
+| Send test emails, see the delivery log, resend | Editor. Editors can send test emails only to their own address, the default recipients, a saved template's recipients or an allowed recipient domain. Admins can send them to any address the allowed domains permit. Each organization can send 10 test emails a minute. |
 | Change settings and templates, test the SMTP connection, Setup page | Admin |
 | Webhook (the contact point's token) | Editor service account |

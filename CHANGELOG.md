@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.5
+
+Security fixes from internal penetration testing. Upgrade recommended.
+
+- Templates run under limits: 5 seconds, 1,000,000 loop iterations and template calls, 1 MB per value and 64 MB per render. Before, one preview could keep every CPU core busy for minutes or use gigabytes of memory. See [template limits](docs/templates.md#limits).
+- Removed Sprig's slow cryptography functions (`genPrivateKey`, `bcrypt` and others). In HTML templates, `html` and `urlquery` can only end an output.
+- Preview needs the Editor role, like the Templates page. At most 4 previews and test emails render at once.
+- Test emails from Editors only go to their own address, the default recipients, a saved template's recipients or an allowed domain. Each organization can send 10 test emails a minute.
+- **Test connection** only sends the saved SMTP password to the saved host, port and username with the same security. Before, an admin could send it to a server they run.
+- New settings: allowed recipient domains, max recipients per email (default 50) and max emails per notification (default 20).
+- SMTP errors no longer quote bytes from servers that are not SMTP servers, and remove control characters from server replies.
+- Fix: "too many recipients" was reported as a wrong password and retried.
+- Removed AI assistant files from the repository.
+
 ## 0.1.4
 
 - Fix: the delivery log was shared by all Grafana organizations; each organization now has its own.

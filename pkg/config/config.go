@@ -109,10 +109,54 @@ type Settings struct {
 	// counted as "and N more". Gmail cuts off emails larger than about
 	// 102 KB, roughly 40-50 alerts with the default template.
 	MaxAlertsPerEmail int `json:"maxAlertsPerEmail,omitempty"`
+	// AllowedRecipientDomains limits every email to these domains, separated
+	// by commas, such as "example.com, example.org". Empty allows any domain.
+	AllowedRecipientDomains string `json:"allowedRecipientDomains,omitempty"`
+	// MaxRecipientsPerEmail caps the recipients of one email.
+	MaxRecipientsPerEmail int `json:"maxRecipientsPerEmail,omitempty"`
+	// MaxEmailsPerNotification caps the emails one Grafana notification can
+	// become, for example when every alert names its own recipients.
+	MaxEmailsPerNotification int `json:"maxEmailsPerNotification,omitempty"`
 }
 
-// DefaultMaxAlertsPerEmail is used when MaxAlertsPerEmail is not set.
-const DefaultMaxAlertsPerEmail = 40
+// Defaults for the limits.
+const (
+	DefaultMaxAlertsPerEmail        = 40
+	DefaultMaxRecipientsPerEmail    = 50
+	DefaultMaxEmailsPerNotification = 20
+)
+
+// AllowedDomains returns the allowed recipient domains, lowercase, or nil
+// when any domain is allowed.
+func (s Settings) AllowedDomains() []string {
+	var out []string
+	for _, d := range strings.FieldsFunc(s.AllowedRecipientDomains, func(r rune) bool { return r == ',' || r == ';' || r == ' ' || r == '\n' }) {
+		if d = strings.ToLower(strings.TrimPrefix(strings.TrimSpace(d), "@")); d != "" {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
+// DomainAllowed reports whether addr may receive email under
+// AllowedRecipientDomains. Subdomains are not included: list each one.
+func (s Settings) DomainAllowed(addr string) bool {
+	domains := s.AllowedDomains()
+	if len(domains) == 0 {
+		return true
+	}
+	at := strings.LastIndex(addr, "@")
+	if at < 0 {
+		return false
+	}
+	d := strings.ToLower(strings.TrimRight(addr[at+1:], ">"))
+	for _, allowed := range domains {
+		if d == allowed {
+			return true
+		}
+	}
+	return false
+}
 
 // ThreadsEmails reports whether threading is on.
 func (s Settings) ThreadsEmails() bool { return s.Threading == nil || *s.Threading }
@@ -156,6 +200,12 @@ func (s *Settings) applyDefaults() {
 	}
 	if s.MaxAlertsPerEmail <= 0 {
 		s.MaxAlertsPerEmail = DefaultMaxAlertsPerEmail
+	}
+	if s.MaxRecipientsPerEmail <= 0 {
+		s.MaxRecipientsPerEmail = DefaultMaxRecipientsPerEmail
+	}
+	if s.MaxEmailsPerNotification <= 0 {
+		s.MaxEmailsPerNotification = DefaultMaxEmailsPerNotification
 	}
 	if s.Routing.TemplateLabel == "" {
 		s.Routing.TemplateLabel = DefaultTemplateLabel

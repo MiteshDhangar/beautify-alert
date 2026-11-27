@@ -120,3 +120,24 @@ func TestSkipResolvedOnlyEmails(t *testing.T) {
 		t.Errorf("mixed email should be sent, sent %d", len(f.sent))
 	}
 }
+
+func TestRecipientLimitsAndDomains(t *testing.T) {
+	s, f := service()
+	s.Settings.AllowedRecipientDomains = "x.com"
+	s.Settings.MaxRecipientsPerEmail = 3
+	n := one(alert.KV{"email_to": "a@x.com, b@x.com, c@other.test, d@x.com, e@x.com"})
+	res := s.Handle(context.Background(), n, routing.Overrides{})
+	if len(f.sent) != 1 || strings.Join(f.sent[0].To, ",") != "a@x.com,b@x.com,d@x.com" {
+		t.Fatalf("sent %+v", f.sent)
+	}
+	w := strings.Join(res.Emails[0].Warnings, " | ")
+	if !strings.Contains(w, "outside the allowed domains") || !strings.Contains(w, "first 3 of 4") {
+		t.Errorf("warnings %q", w)
+	}
+	// Nobody left: the email fails instead of going out.
+	n.Alerts[0].Labels["email_to"] = "c@other.test"
+	res = s.Handle(context.Background(), n, routing.Overrides{})
+	if res.Emails[0].OK || len(f.sent) != 1 {
+		t.Errorf("res %+v", res.Emails[0])
+	}
+}

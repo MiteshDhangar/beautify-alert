@@ -26,6 +26,7 @@ apps:
         templateLabel: email_template
         recipientsLabel: email_to
       threading: true
+      allowedRecipientDomains: example.com   # optional; empty allows any domain
       templates:
         - name: payments
           description: Finance team

@@ -45,6 +45,10 @@ export interface Settings {
   templatesGz?: string;
   threading?: boolean;
   maxAlertsPerEmail?: number;
+  /** Comma-separated domains every email is limited to; empty allows any. */
+  allowedRecipientDomains?: string;
+  maxRecipientsPerEmail?: number;
+  maxEmailsPerNotification?: number;
 }
 
 export interface Rendered {

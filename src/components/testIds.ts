@@ -4,6 +4,7 @@ export const testIds = {
     smtpHost: 'data-testid ac-smtp-host',
     smtpPort: 'data-testid ac-smtp-port',
     defaultRecipients: 'data-testid ac-default-recipients',
+    allowedDomains: 'data-testid ac-allowed-domains',
     submit: 'data-testid ac-submit-form',
   },
 };

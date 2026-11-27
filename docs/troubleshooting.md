@@ -31,13 +31,26 @@ The alert never reached the plugin.
 | `connection refused`, `i/o timeout` | The SMTP host or port is wrong, or a firewall blocks it. AWS EC2 blocks outgoing port 25 by default; use 587. The plugin already retried twice. |
 | `does not support STARTTLS` | Use **TLS** for port 465, or **None** for a local relay without TLS. |
 | `offered no login method` | The server offers no login on this connection. Use STARTTLS or TLS, or clear the username if the server needs no login. |
+| `did not answer like an SMTP server` | The host and port reach something that is not an SMTP server, such as a database or web server. Check both. |
+| `refused this many recipients` | The provider limits recipients per email. Lower **Max recipients per email** on the Configuration page. |
+| `outside the allowed domains` | The recipient's domain is not in **Allowed recipient domains**. |
+| `over the limit of N emails per notification` | One notification named more recipient lists than **Max emails per notification**. Raise it, or group recipients into fewer lists. |
 | `rejected the username or password`, `535` | Wrong login. Gmail and Microsoft 365 need an app password; SendGrid's username is `apikey`. |
 | `certificate`, `x509` | The server's certificate does not match the host name or is self-signed. Use the host name on the certificate, or turn on **Skip certificate check** for a trusted internal server. |
 | `no valid recipients` | Every address was invalid. Check the `email_to` label, the template's recipients and the default recipients. |
 | `no recipients` | Nobody to send to. Set default recipients on the Configuration page. |
 | `550`, `553`, `sender rejected` | The SMTP provider does not allow this from address. Verify the address or domain with the provider. |
 
-**Test connection** on the Configuration page checks the server and login without sending.
+**Test connection** on the Configuration page checks the server and login without sending. To test a different host, port, username or security setting, type the password again: the saved password is only sent to the saved server.
+
+Other errors:
+
+| Error contains | Fix |
+| --- | --- |
+| `template went over a render limit` | The template loops too much or builds very large values. See [template limits](templates.md#limits). |
+| `test emails from editors can only go to` | Send the test to yourself, the default recipients or a saved template's recipients, or ask an admin to add the domain to **Allowed recipient domains**. |
+| `test emails in the last` | Each organization can send 10 test emails a minute. Wait and try again. |
+| `too many previews and test emails are rendering` | Several people are previewing at once. Try again in a few seconds. |
 
 ## The email looks wrong
 

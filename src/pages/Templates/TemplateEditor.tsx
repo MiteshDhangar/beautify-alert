@@ -320,7 +320,8 @@ export function TemplateEditor(props: Props) {
       </div>
       {!canSave && (
         <Text variant="bodySmall" color="secondary">
-          Only Grafana admins can save templates. You can still preview and send test emails.
+          Only Grafana admins can save templates. You can still preview and send test emails to your own address,
+          the default recipients, a saved template&apos;s recipients or an allowed recipient domain.
         </Text>
       )}
       <ConfirmModal

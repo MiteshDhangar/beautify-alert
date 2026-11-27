@@ -129,3 +129,26 @@ func TestExplainAuthDiscovery(t *testing.T) {
 		t.Errorf("explain = %v", err)
 	}
 }
+
+func TestExplainHidesServerBytesAndMatchesRealAuthErrors(t *testing.T) {
+	s := &SMTP{cfg: config.Delivery{SMTP: config.SMTP{Host: "db.internal", Port: 3306}}}
+	got := s.explain(errors.New("short response: \"J\x00\x00\x008.4.11\x00secret-banner\"")).Error()
+	if strings.Contains(got, "J") || strings.Contains(got, "secret-banner") || !strings.Contains(got, "did not answer like an SMTP server") {
+		t.Errorf("non-SMTP server: %q", got)
+	}
+	got = s.explain(errors.New(`sending SMTP RCPT TO command: 452 "4.5.3 Too many recipients", u535@outside.test`)).Error()
+	if strings.Contains(got, "username or password") || !strings.Contains(got, "this many recipients") {
+		t.Errorf("452: %q", got)
+	}
+	got = s.explain(errors.New("authentication failed: 535 5.7.8 Username and Password not accepted")).Error()
+	if !strings.Contains(got, "username or password") {
+		t.Errorf("535: %q", got)
+	}
+	got = s.explain(errors.New("reply: 550 bad\r\nX-Injected: 1" + strings.Repeat("a", 2000))).Error()
+	if strings.ContainsAny(got, "\r\n") || len(got) > maxErrorLength+10 {
+		t.Errorf("control characters or length: %q", got[:80])
+	}
+	if retryable(errors.New(`452 "4.5.3 Too many recipients"`)) || retryable(errors.New("short response: x")) {
+		t.Error("should not retry")
+	}
+}

@@ -25,6 +25,9 @@ apps:
           skipVerify: false
       defaultRecipients: oncall@example.com
       maxAlertsPerEmail: 40
+      allowedRecipientDomains: example.com # empty allows any domain
+      maxRecipientsPerEmail: 50
+      maxEmailsPerNotification: 20
       threading: true
       routing:
         templateLabel: email_template

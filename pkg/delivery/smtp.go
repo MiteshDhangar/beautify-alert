@@ -5,8 +5,10 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	mail "github.com/wneessen/go-mail"
 
@@ -140,7 +142,7 @@ func retryable(err error) bool {
 		return false
 	}
 	msg := strings.ToLower(err.Error())
-	for _, permanent := range []string{"auth", "certificate", "tls", "starttls", "x509"} {
+	for _, permanent := range []string{"auth", "certificate", "tls", "starttls", "x509", "too many recipients", "4.5.3", "short response", "invalid response", "malformed"} {
 		if strings.Contains(msg, permanent) {
 			return false
 		}
@@ -148,18 +150,51 @@ func retryable(err error) bool {
 	return true
 }
 
-// explain adds the server and, for common mistakes, what to change.
+// authRejectedRe matches an SMTP 535 reply ("535 5.7.8 ..." or "535-..."),
+// not 535 inside an address or a number.
+var authRejectedRe = regexp.MustCompile(`(?:^|[\s:"])535[ -]`)
+
+// explain adds the server and, for common mistakes, what to change. The
+// message never includes raw bytes from the server: the host may not be an
+// SMTP server at all, and its reply is not for the plugin's users to read.
 func (s *SMTP) explain(err error) error {
 	where := fmt.Sprintf("smtp %s:%d", s.cfg.SMTP.Host, s.cfg.SMTP.Port)
+	text := err.Error()
 	switch {
+	case strings.Contains(text, "short response") || strings.Contains(text, "invalid response code") || strings.Contains(text, "malformed"):
+		return fmt.Errorf("%s: the server did not answer like an SMTP server; check the host and port", where)
+	case strings.Contains(strings.ToLower(text), "too many recipients") || strings.Contains(text, "4.5.3"):
+		return cleanError{fmt.Errorf("%s: the server refused this many recipients in one email; lower \"Max recipients per email\" on the Configuration page: %w", where, err)}
 	case errors.Is(err, mail.ErrNoSupportedAuthDiscovered):
 		return fmt.Errorf("%s: the server offered no login method on this connection. If it needs a login, set Security to STARTTLS or TLS; if it does not, clear the username: %w", where, err)
 	case strings.Contains(err.Error(), "does not support STARTTLS"):
 		return fmt.Errorf("%s: the server does not support STARTTLS. Use TLS for port 465, or None for a local relay: %w", where, err)
-	case strings.Contains(err.Error(), "535") || strings.Contains(strings.ToLower(err.Error()), "username and password not accepted"):
-		return fmt.Errorf("%s: the server rejected the username or password. For Gmail and Microsoft 365, use an app password: %w", where, err)
+	case authRejectedRe.MatchString(text) || strings.Contains(strings.ToLower(text), "username and password not accepted"):
+		return cleanError{fmt.Errorf("%s: the server rejected the username or password. For Gmail and Microsoft 365, use an app password: %w", where, err)}
 	}
-	return fmt.Errorf("%s: %w", where, err)
+	return cleanError{fmt.Errorf("%s: %w", where, err)}
+}
+
+// maxErrorLength caps an error message, which may quote the server.
+const maxErrorLength = 600
+
+// cleanError is err with control characters replaced and the message
+// shortened, so a server reply cannot inject lines or flood the UI.
+type cleanError struct{ err error }
+
+func (e cleanError) Unwrap() error { return e.err }
+
+func (e cleanError) Error() string {
+	msg := strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f || r == utf8.RuneError {
+			return ' '
+		}
+		return r
+	}, e.err.Error())
+	if len(msg) > maxErrorLength {
+		msg = msg[:maxErrorLength] + "..."
+	}
+	return msg
 }
 
 // Verify implements Sender: it connects, negotiates TLS and authenticates.

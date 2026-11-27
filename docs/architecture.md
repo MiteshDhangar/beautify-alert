@@ -42,8 +42,8 @@ All under `/api/plugins/prudentbee939-beautifyalert-app/resources/`. Grafana han
 | --- | --- | --- |
 | `POST /alert` | Editor | Webhook target. Returns 502 when any email fails, which Grafana records as a failed notification. |
 | `GET /starters` | Viewer | Starter templates and sample data |
-| `POST /preview` | Viewer | Renders an unsaved template |
-| `POST /test` | Editor | Sends an unsaved template with sample data |
+| `POST /preview` | Editor | Renders an unsaved template |
+| `POST /test` | Editor | Sends an unsaved template with sample data, to known addresses only for Editors, 10 per minute per organization |
 | `GET /history`, `GET /history/{id}` | Editor | Delivery log |
 | `POST /history/{id}/resend` | Editor | Sends a logged email again |
 | `POST /verify` | Admin | Connects and logs in to the SMTP server without sending |
@@ -62,16 +62,21 @@ Callers do not change.
 
 For each planned email:
 
-1. Recipients that are not valid email addresses are skipped and listed as a warning. If none is left, the email fails.
+1. Recipients that are not valid email addresses, or are outside the allowed recipient domains, are skipped and listed as a warning. At most *Max recipients per email* remain. If none is left, the email fails.
 2. At most *Alerts per email* alerts are listed (default 40, firing first). The rest are counted in `.TruncatedAlerts`; `.FiringCount` and `.ResolvedCount` still count every alert.
 3. If the template fails while rendering, the email is rendered with the built-in template and the error is recorded as a warning, so the alert still reaches people.
 4. If the template has **Resolved-only emails** turned off and every alert in the email is resolved, nothing is sent and the log shows it as skipped.
+5. One notification sends at most *Max emails per notification* emails. The rest are recorded as one failed log entry.
 
 ## Security
 
 - Values from alerts are escaped by `html/template`. `safeHTML` is the only way to insert raw HTML, and templates are written by admins.
-- Sprig functions that read the environment (`env`, `expandenv`) or the network (`getHostByName`) are removed.
-- Viewers cannot send email through the plugin.
+- Sprig functions that read the environment, reach the network or run slow cryptography are removed.
+- Every render runs under limits (`pkg/templates/guard.go`): a tick at the start of each loop iteration and template call counts steps and checks a 5 second deadline, and every function is wrapped to refuse oversized arguments and results. See [template limits](templates.md#limits).
+- At most 4 previews and test emails render at once across the plugin; alert emails do not wait for them.
+- Viewers cannot preview or send email through the plugin. Test emails from Editors only go to known addresses, and each organization can send 10 a minute.
+- **Test connection** sends the saved password only to the saved host, port and username with the same security, so it cannot be used to send the password elsewhere.
+- SMTP errors never quote bytes from a server that is not an SMTP server, and control characters in server replies are removed.
 - The preview frame is sandboxed without scripts or same-origin access.
 - Request bodies are limited to 10 MB, rendered emails to 5 MB.
 - The SMTP password is stored encrypted by Grafana and is never returned to the browser or written to logs.

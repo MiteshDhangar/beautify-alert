@@ -58,7 +58,9 @@ Labels (`.Labels`, `.CommonLabels`, ...) also have:
 
 ## Functions
 
-Every [Sprig](https://masterminds.github.io/sprig/) function is available except `env`, `expandenv` and `getHostByName`. For example `upper`, `default`, `join`, `trunc`, `date`, `list`.
+Every [Sprig](https://masterminds.github.io/sprig/) function is available except the ones that read the environment (`env`, `expandenv`), reach the network (`getHostByName`) or run slow cryptography (`bcrypt`, `htpasswd`, `derivePassword`, `genPrivateKey`, `buildCustomCert`, `genCA`, `genCAWithKey`, `genSelfSignedCert`, `genSelfSignedCertWithKey`, `genSignedCert`, `genSignedCertWithKey`). For example `upper`, `default`, `join`, `trunc`, `date`, `list`.
+
+In the HTML template, `html` and `urlquery` can only end an output, as in `{{ .Value | urlquery }}`. Output is escaped already, so you rarely need them.
 
 Added by Beautify Alert:
 
@@ -114,6 +116,20 @@ Values with units:
 - Gmail groups emails into a conversation only when the subjects match, besides the `References` header. Keep the status out of the subject if you want firing and resolved emails grouped in Gmail.
 
 ## Limits
+
+Templates are code, so every render runs under limits. Real alert templates stay far below them:
+
+| Limit | Value | Example that hits it |
+| --- | --- | --- |
+| Run time | 5 seconds | |
+| Loop iterations and template calls | 1,000,000 | `{{ range 3000000000 }}` |
+| One value a function returns | 1 MB | `{{ repeat 2000000 "x" }}` |
+| All values functions return in one render | 64 MB | |
+| Counts such as `until`, `seq`, `randAlpha` | 10,000 | `{{ until 50000 }}` |
+| `printf` width or precision | 10,000 | `{{ printf "%90000d" 1 }}` |
+| Inlining CSS | 512 KB of HTML and 2,000 style rules | Turn off **Inline CSS** for larger emails |
+
+A template that goes over a limit fails with `template went over a render limit` and the reason.
 
 - A rendered email can be at most 5 MB.
 - Template errors show in the preview, and a template with an error cannot be saved. If a saved template still fails on real alert data, the email is sent with the built-in template and the delivery log shows the error as a warning.

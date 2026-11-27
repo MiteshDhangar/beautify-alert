@@ -3,8 +3,9 @@
 // The HTML body uses Go's html/template: the template's own markup is kept
 // and every value from an alert is escaped, so an annotation containing
 // "<script>" shows as text. The subject uses text/template. Both get the
-// Sprig function library (minus functions that read the environment or the
-// network) and a few alert helpers.
+// Sprig function library (minus functions that read the environment, reach
+// the network or run slow cryptography) and a few alert helpers. Every render
+// runs under the limits in guard.go.
 package templates
 
 import (
@@ -14,6 +15,7 @@ import (
 	"math"
 	"strings"
 	texttemplate "text/template"
+	"text/template/parse"
 	"time"
 
 	"github.com/Masterminds/sprig/v3"
@@ -26,15 +28,19 @@ import (
 // MaxOutputSize caps a rendered email so a runaway template cannot exhaust memory.
 const MaxOutputSize = 5 << 20
 
+// CSS inlining compares every rule with every element, so it is limited to
+// emails of a sensible size. Gmail clips emails above about 102 KB anyway.
+const (
+	maxInlineCSSSize  = 512 << 10
+	maxInlineCSSRules = 2000
+)
+
 // Rendered is a rendered email.
 type Rendered struct {
 	Subject string `json:"subject"`
 	HTML    string `json:"html"`
 	Text    string `json:"text"`
 }
-
-// unsafeSprigFuncs read the plugin's environment or reach the network.
-var unsafeSprigFuncs = []string{"env", "expandenv", "getHostByName"}
 
 // Helpers are the functions added on top of Sprig. Documented in docs/templates.md.
 func helpers() map[string]any {
@@ -131,29 +137,41 @@ func trimFloat(v float64) string {
 	return s
 }
 
-func htmlFuncs() htmltemplate.FuncMap {
-	f := sprig.HtmlFuncMap()
-	for _, k := range unsafeSprigFuncs {
+// baseFuncs are Sprig without unsafe functions, the helpers, and the
+// builtins that build strings, replaced by equivalents the guard can limit.
+func baseFuncs(f map[string]any) map[string]any {
+	for _, k := range unsafeFuncs {
 		delete(f, k)
 	}
 	for k, v := range helpers() {
 		f[k] = v
 	}
-	// safeHTML inserts a value without escaping. Use it only on trusted content.
-	f["safeHTML"] = func(s string) htmltemplate.HTML { return htmltemplate.HTML(s) } // #nosec G203 -- documented opt-in for admin-written templates
+	f["print"] = fmt.Sprint
+	f["printf"] = fmt.Sprintf
+	f["println"] = fmt.Sprintln
+	f["js"] = texttemplate.JSEscaper
 	return f
 }
 
-func textFuncs() texttemplate.FuncMap {
-	f := sprig.TxtFuncMap()
-	for _, k := range unsafeSprigFuncs {
-		delete(f, k)
-	}
-	for k, v := range helpers() {
-		f[k] = v
-	}
-	return f
+func htmlFuncs(g *guard) htmltemplate.FuncMap {
+	f := baseFuncs(sprig.HtmlFuncMap())
+	// safeHTML inserts a value without escaping. Use it only on trusted content.
+	f["safeHTML"] = func(s string) htmltemplate.HTML { return htmltemplate.HTML(s) } // #nosec G203 -- documented opt-in for admin-written templates
+	return g.funcs(f)
 }
+
+func textFuncs(g *guard) texttemplate.FuncMap {
+	f := baseFuncs(sprig.TxtFuncMap())
+	f["html"] = texttemplate.HTMLEscaper
+	f["urlquery"] = texttemplate.URLQueryEscaper
+	return g.funcs(f)
+}
+
+// tickNode is a parsed call to the guard's tick, copied into templates.
+var tickNode = func() *parse.ActionNode {
+	t := texttemplate.Must(texttemplate.New("tick").Funcs(texttemplate.FuncMap{tickFunc: func() string { return "" }}).Parse(tickSrc))
+	return t.Root.Nodes[0].(*parse.ActionNode)
+}()
 
 // Error is a template error with the part that failed.
 type Error struct {
@@ -172,27 +190,44 @@ func Render(t config.Template, n alert.Notification) (Rendered, error) {
 	if strings.TrimSpace(subjectSrc) == "" {
 		subjectSrc = DefaultSubject
 	}
-	st, err := texttemplate.New("subject").Funcs(textFuncs()).Option("missingkey=zero").Parse(subjectSrc)
+	g := newGuard()
+	st, err := texttemplate.New("subject").Funcs(textFuncs(g)).Option("missingkey=zero").Parse(subjectSrc)
 	if err != nil {
 		return out, &Error{Part: "subject", Err: err}
 	}
+	var subjectTrees []*parse.Tree
+	for _, t := range st.Templates() {
+		subjectTrees = append(subjectTrees, t.Tree)
+	}
+	instrument(subjectTrees, tickNode)
 	var sb limitedBuffer
 	if err := st.Execute(&sb, n); err != nil {
-		return out, &Error{Part: "subject", Err: err}
+		return out, &Error{Part: "subject", Err: limitMessage(err)}
 	}
 	// A subject is one line.
 	out.Subject = strings.Join(strings.Fields(sb.String()), " ")
 
-	ht, err := htmltemplate.New("html").Funcs(htmlFuncs()).Option("missingkey=zero").Parse(t.HTML)
+	ht, err := htmltemplate.New("html").Funcs(htmlFuncs(g)).Option("missingkey=zero").Parse(t.HTML)
 	if err != nil {
 		return out, &Error{Part: "html", Err: err}
 	}
+	var htmlTrees []*parse.Tree
+	for _, t := range ht.Templates() {
+		htmlTrees = append(htmlTrees, t.Tree)
+	}
+	if err := checkPredefinedEscapers(htmlTrees); err != nil {
+		return out, &Error{Part: "html", Err: err}
+	}
+	instrument(htmlTrees, tickNode)
 	var hb limitedBuffer
 	if err := ht.Execute(&hb, n); err != nil {
-		return out, &Error{Part: "html", Err: err}
+		return out, &Error{Part: "html", Err: limitMessage(err)}
 	}
 	out.HTML = hb.String()
 	if t.InlinesCSS() && strings.Contains(out.HTML, "<style") {
+		if len(out.HTML) > maxInlineCSSSize || strings.Count(out.HTML, "{") > maxInlineCSSRules {
+			return out, &Error{Part: "html", Err: fmt.Errorf("%w: too large to inline CSS (limit %d KB and %d style rules); turn off Inline CSS for this template", ErrLimit, maxInlineCSSSize>>10, maxInlineCSSRules)}
+		}
 		inlined, err := inlineCSS(out.HTML)
 		if err != nil {
 			return out, &Error{Part: "html", Err: fmt.Errorf("inlining CSS: %w", err)}

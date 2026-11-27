@@ -232,6 +232,58 @@ const AppConfig = ({ plugin }: AppConfigProps) => {
         </Field>
       </FieldSet>
 
+      <FieldSet label="Limits">
+        <Field
+          label="Allowed recipient domains"
+          description="Every email, alert or test, only goes to addresses in these domains. Separate with commas; list subdomains separately. Leave empty to allow any domain."
+        >
+          <Input
+            value={form.allowedRecipientDomains ?? ''}
+            placeholder="example.com, example.org"
+            onChange={(e) => setForm({ ...form, allowedRecipientDomains: e.currentTarget.value })}
+            data-testid={testIds.appConfig.allowedDomains}
+          />
+        </Field>
+        <div className={s.grid}>
+          <Field
+            label="Max recipients per email"
+            description="Extra recipients are skipped with a warning in the delivery log. Many providers allow 50 to 100."
+          >
+            <Input
+              type="number"
+              width={16}
+              min={1}
+              max={500}
+              value={form.maxRecipientsPerEmail ?? 50}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  maxRecipientsPerEmail: Math.min(500, Math.max(1, Number(e.currentTarget.value) || 50)),
+                })
+              }
+            />
+          </Field>
+          <Field
+            label="Max emails per notification"
+            description="One Grafana notification becomes one email per template and recipient list. The rest are not sent and the delivery log says so."
+          >
+            <Input
+              type="number"
+              width={16}
+              min={1}
+              max={200}
+              value={form.maxEmailsPerNotification ?? 20}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  maxEmailsPerNotification: Math.min(200, Math.max(1, Number(e.currentTarget.value) || 20)),
+                })
+              }
+            />
+          </Field>
+        </div>
+      </FieldSet>
+
       {notice && (
         <Alert severity={notice.severity} title={notice.title} onRemove={() => setNotice(undefined)}>
           {notice.text}

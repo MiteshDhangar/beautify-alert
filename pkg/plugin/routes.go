@@ -28,9 +28,10 @@ var roleRank = map[string]int{"Viewer": 1, "Editor": 2, "Admin": 3}
 func (a *App) routes(mux *http.ServeMux) {
 	// Grafana's webhook contact point posts here.
 	mux.HandleFunc("POST /alert", a.requireRole("Editor", a.handleAlert))
-	// Editor pages.
+	// Editor pages. The Templates page is for Editors, and a preview runs
+	// template code, so Viewers cannot call it.
 	mux.HandleFunc("GET /starters", a.handleStarters)
-	mux.HandleFunc("POST /preview", a.handlePreview)
+	mux.HandleFunc("POST /preview", a.requireRole("Editor", a.handlePreview))
 	mux.HandleFunc("POST /test", a.requireRole("Editor", a.handleTest))
 	mux.HandleFunc("GET /history", a.requireRole("Editor", a.handleHistory))
 	mux.HandleFunc("GET /history/{id}", a.requireRole("Editor", a.handleHistoryEntry))
@@ -167,6 +168,8 @@ func sampleFor(req previewRequest) alert.Notification {
 	return n
 }
 
+var errBusy = errors.New("too many previews and test emails are rendering right now; try again in a few seconds")
+
 // handlePreview renders an unsaved template with sample data.
 func (a *App) handlePreview(w http.ResponseWriter, r *http.Request) {
 	var req previewRequest
@@ -174,6 +177,11 @@ func (a *App) handlePreview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
+	if !acquireRenderSlot() {
+		writeError(w, http.StatusTooManyRequests, errBusy)
+		return
+	}
+	defer releaseRenderSlot()
 	out, err := templates.Render(req.Template, sampleFor(req))
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, err)
@@ -193,13 +201,30 @@ func (a *App) handleTest(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	entry, err := a.svc(r).SendTest(r.Context(), req.Template, config.SplitAddresses(req.To))
+	ns := backend.PluginConfigFromContext(r.Context()).Namespace
+	if ok, wait := testLimiter.allow(ns, time.Now()); !ok {
+		writeError(w, http.StatusTooManyRequests, fmt.Errorf("this organization sent %d test emails in the last %s; try again in %s", testEmailLimit, testEmailWindow, wait.Round(time.Second)))
+		return
+	}
+	if !acquireRenderSlot() {
+		writeError(w, http.StatusTooManyRequests, errBusy)
+		return
+	}
+	defer releaseRenderSlot()
+	caller := notify.Caller{}
+	if u := backend.UserFromContext(r.Context()); u != nil {
+		caller = notify.Caller{Email: u.Email, Admin: roleRank[u.Role] >= roleRank["Admin"]}
+	}
+	entry, err := a.svc(r).SendTest(r.Context(), req.Template, config.SplitAddresses(req.To), caller)
 	if err != nil {
 		var te *templates.Error
 		status := http.StatusBadGateway
-		if errors.As(err, &te) {
+		switch {
+		case errors.As(err, &te):
 			status = http.StatusUnprocessableEntity
-		} else if errors.Is(err, config.ErrNotConfigured) {
+		case errors.Is(err, notify.ErrTestRecipient):
+			status = http.StatusForbidden
+		case errors.Is(err, config.ErrNotConfigured), strings.HasPrefix(err.Error(), "invalid recipient"), strings.HasPrefix(err.Error(), "no recipients"):
 			status = http.StatusBadRequest
 		}
 		writeError(w, status, err)
@@ -251,7 +276,13 @@ func (a *App) handleVerify(w http.ResponseWriter, r *http.Request) {
 	}
 	d := req.Delivery
 	d.SMTP.Password = req.Password
-	if d.SMTP.Password == "" && d.SMTP.Username == a.settings.Delivery.SMTP.Username {
+	if d.SMTP.Password == "" && d.SMTP.Username != "" && a.settings.Delivery.SMTP.Password != "" {
+		// The saved password only ever goes to the saved server. Otherwise
+		// anyone who can call verify could send it to a server they run.
+		if !sameServer(d.SMTP, a.settings.Delivery.SMTP) {
+			writeError(w, http.StatusBadRequest, errors.New("enter the password: the saved password is only used to verify the saved server with the same host, port, username and security"))
+			return
+		}
 		d.SMTP.Password = a.settings.Delivery.SMTP.Password
 	}
 	s := config.Settings{Delivery: d}
@@ -268,4 +299,33 @@ func (a *App) handleVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// sameServer reports whether a is the saved server b with the same login and
+// no weaker security: the same TLS mode, and the certificate check kept on
+// if it is on in b.
+func sameServer(a, b config.SMTP) bool {
+	port := func(s config.SMTP) int {
+		if s.Port != 0 {
+			return s.Port
+		}
+		switch s.Security {
+		case config.SecurityTLS:
+			return 465
+		case config.SecurityNone:
+			return 25
+		default:
+			return 587
+		}
+	}
+	return strings.EqualFold(strings.TrimSpace(a.Host), strings.TrimSpace(b.Host)) &&
+		port(a) == port(b) && a.Username == b.Username &&
+		security(a) == security(b) && (!a.SkipVerify || b.SkipVerify)
+}
+
+func security(s config.SMTP) string {
+	if s.Security == "" {
+		return config.SecurityStartTLS
+	}
+	return s.Security
 }

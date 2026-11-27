@@ -71,7 +71,7 @@ func TestSafeHTMLIsOptIn(t *testing.T) {
 }
 
 func TestUnsafeFuncsRemoved(t *testing.T) {
-	for _, f := range unsafeSprigFuncs {
+	for _, f := range unsafeFuncs {
 		_, err := Render(config.Template{HTML: `{{ ` + f + ` "HOME" }}`}, alert.Sample(time.Now()))
 		if err == nil {
 			t.Errorf("%s should not be available", f)
@@ -114,7 +114,7 @@ func TestHelpers(t *testing.T) {
 }
 
 func TestOutputIsCapped(t *testing.T) {
-	_, err := Render(config.Template{HTML: `{{ range until 2000000 }}xxxxxxxxxx{{ end }}`}, alert.Sample(time.Now()))
+	_, err := Render(config.Template{HTML: `{{ range 600000 }}xxxxxxxxxx{{ end }}`}, alert.Sample(time.Now()))
 	if err == nil || !strings.Contains(err.Error(), "larger than") {
 		t.Errorf("err = %v", err)
 	}

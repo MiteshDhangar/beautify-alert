@@ -63,7 +63,7 @@ func call(t *testing.T, a *App, role, method, path string, body any) recorder {
 	b, _ := json.Marshal(body)
 	var rec recorder
 	err := a.CallResource(context.Background(), &backend.CallResourceRequest{
-		PluginContext: backend.PluginContext{User: &backend.User{Login: "u", Role: role}},
+		PluginContext: backend.PluginContext{User: &backend.User{Login: "u", Email: "me@x.com", Role: role}},
 		Method:        method,
 		Path:          strings.TrimPrefix(strings.SplitN(path, "?", 2)[0], "/"),
 		URL:           strings.TrimPrefix(path, "/"),
@@ -140,11 +140,15 @@ func TestViewerCannotSend(t *testing.T) {
 
 func TestPreviewAndErrors(t *testing.T) {
 	a := newTestApp(testSettings(), &fakeSender{})
-	rec := call(t, a, "Viewer", http.MethodPost, "/preview", previewRequest{Template: config.Template{HTML: "<b>{{ .Status }}</b>"}, Status: "resolved"})
+	rec := call(t, a, "Viewer", http.MethodPost, "/preview", previewRequest{Template: config.Template{HTML: "<b>x</b>"}})
+	if rec.status != http.StatusForbidden {
+		t.Errorf("viewer preview %d %s", rec.status, rec.body)
+	}
+	rec = call(t, a, "Editor", http.MethodPost, "/preview", previewRequest{Template: config.Template{HTML: "<b>{{ .Status }}</b>"}, Status: "resolved"})
 	if rec.status != http.StatusOK || !strings.Contains(string(rec.body), "resolved") {
 		t.Errorf("preview %d %s", rec.status, rec.body)
 	}
-	rec = call(t, a, "Viewer", http.MethodPost, "/preview", previewRequest{Template: config.Template{HTML: "{{ .Nope "}})
+	rec = call(t, a, "Editor", http.MethodPost, "/preview", previewRequest{Template: config.Template{HTML: "{{ .Nope "}})
 	if rec.status != http.StatusUnprocessableEntity || !strings.Contains(string(rec.body), `"part":"html"`) {
 		t.Errorf("error %d %s", rec.status, rec.body)
 	}
