@@ -14,6 +14,11 @@ updates:
     commit-message:
       prefix: 'chore'
       include: 'scope'
+    ignore:
+      # eslint-plugin-react (used by @grafana/eslint-config) does not support
+      # ESLint 10 yet; npm install fails. Remove when it does.
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
     groups:
       unit-test:
         patterns:
@@ -26,6 +31,9 @@ updates:
           - 'eslint*'
           - '@typescript-eslint/*'
           - '@stylistic/*'
+        update-types:
+          - 'minor'
+          - 'patch'
       grafana:
         patterns:
           - '@grafana/*'
