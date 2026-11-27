@@ -19,6 +19,11 @@ updates:
       # ESLint 10 yet; npm install fails. Remove when it does.
       - dependency-name: 'eslint'
         update-types: ['version-update:semver-major']
+      # @stylistic/eslint-plugin 6 removed an option @grafana/eslint-config
+      # still sets (type-annotation-spacing "arrow"); lint fails. Remove when
+      # @grafana/eslint-config supports it.
+      - dependency-name: '@stylistic/eslint-plugin'
+        update-types: ['version-update:semver-major']
     groups:
       unit-test:
         patterns:
