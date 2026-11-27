@@ -46,3 +46,13 @@ ci/
 .idea
 
 .eslintcache
+
+# AI assistant files added by @grafana/create-plugin; not part of the plugin
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md
+/.claude/
+/.codex/
+/.gemini/
+/.cursor/
+/.config/AGENTS/
