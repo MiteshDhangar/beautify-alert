@@ -375,14 +375,14 @@ func toInt(v reflect.Value) int64 {
 		}
 		return int64(f)
 	case reflect.String:
-		n := 0
+		var n int64
 		for _, c := range v.String() {
 			if c < '0' || c > '9' || n > 1<<40 {
 				break
 			}
-			n = n*10 + int(c-'0')
+			n = n*10 + int64(c-'0')
 		}
-		return int64(n)
+		return n
 	}
 	return 0
 }
