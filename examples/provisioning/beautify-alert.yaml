@@ -22,7 +22,11 @@ apps:
           port: 587
           security: starttls # starttls, tls or none
           username: grafana@example.com
-          skipVerify: false
+          # For a self-signed or private certificate, trust it here (PEM):
+          # caCertificate: |
+          #   -----BEGIN CERTIFICATE-----
+          #   ...
+          #   -----END CERTIFICATE-----
       defaultRecipients: oncall@example.com
       maxAlertsPerEmail: 40
       allowedRecipientDomains: example.com # empty allows any domain

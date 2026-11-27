@@ -9,7 +9,7 @@ export const DEFAULT_SETTINGS: Settings = {
     fromAddress: '',
     fromName: 'Grafana Alerts',
     replyTo: '',
-    smtp: { host: '', port: 587, username: '', security: 'starttls', skipVerify: false },
+    smtp: { host: '', port: 587, username: '', security: 'starttls', caCertificate: '' },
   },
   defaultRecipients: '',
   routing: { templateLabel: 'email_template', recipientsLabel: 'email_to' },

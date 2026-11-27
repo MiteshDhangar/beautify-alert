@@ -280,7 +280,7 @@ func (a *App) handleVerify(w http.ResponseWriter, r *http.Request) {
 		// The saved password only ever goes to the saved server. Otherwise
 		// anyone who can call verify could send it to a server they run.
 		if !sameServer(d.SMTP, a.settings.Delivery.SMTP) {
-			writeError(w, http.StatusBadRequest, errors.New("enter the password: the saved password is only used to verify the saved server with the same host, port, username and security"))
+			writeError(w, http.StatusBadRequest, errors.New("enter the password: the saved password is only used to verify the saved server with the same host, port, username, security and trusted certificate"))
 			return
 		}
 		d.SMTP.Password = a.settings.Delivery.SMTP.Password
@@ -302,8 +302,8 @@ func (a *App) handleVerify(w http.ResponseWriter, r *http.Request) {
 }
 
 // sameServer reports whether a is the saved server b with the same login and
-// no weaker security: the same TLS mode, and the certificate check kept on
-// if it is on in b.
+// the same security: TLS mode and trusted certificate. Otherwise a caller
+// could trust their own certificate and receive the password.
 func sameServer(a, b config.SMTP) bool {
 	port := func(s config.SMTP) int {
 		if s.Port != 0 {
@@ -320,7 +320,7 @@ func sameServer(a, b config.SMTP) bool {
 	}
 	return strings.EqualFold(strings.TrimSpace(a.Host), strings.TrimSpace(b.Host)) &&
 		port(a) == port(b) && a.Username == b.Username &&
-		security(a) == security(b) && (!a.SkipVerify || b.SkipVerify)
+		security(a) == security(b) && strings.TrimSpace(a.CACertificate) == strings.TrimSpace(b.CACertificate)
 }
 
 func security(s config.SMTP) string {

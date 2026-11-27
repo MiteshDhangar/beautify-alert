@@ -12,6 +12,7 @@ import {
   Stack,
   Switch,
   Text,
+  TextArea,
   useStyles2,
 } from '@grafana/ui';
 import { api, pluginSettings } from '../../api';
@@ -54,6 +55,9 @@ const AppConfig = ({ plugin }: AppConfigProps) => {
     try {
       // Templates are edited on the Templates page; keep whatever is saved.
       const { templates: _ignored, templatesGz: _ignoredGz, ...rest } = form;
+      // "Skip certificate check" was removed in 0.1.6; drop the old value.
+      const { skipVerify: _removed, ...smtp } = rest.delivery.smtp;
+      rest.delivery = { ...rest.delivery, smtp };
       const secure = password ? { smtpPassword: password } : passwordSet ? undefined : { smtpPassword: '' };
       await pluginSettings.save(rest, secure);
       // Grafana keeps the plugin settings in memory per page load.
@@ -162,10 +166,25 @@ const AppConfig = ({ plugin }: AppConfigProps) => {
               }}
             />
           </Field>
-          <Field label="Skip certificate check" description="Only for servers with self-signed certificates">
-            <Switch value={d.smtp.skipVerify} onChange={(e) => setSmtp({ skipVerify: e.currentTarget.checked })} />
-          </Field>
         </div>
+        <Field
+          label="Trusted certificate"
+          description="Optional. For a server with a self-signed or private certificate: paste its certificate, or the CA that issued it, in PEM format. Certificates are always checked."
+        >
+          <TextArea
+            rows={3}
+            value={d.smtp.caCertificate ?? ''}
+            placeholder={'-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----'}
+            onChange={(e) => setSmtp({ caCertificate: e.currentTarget.value })}
+            data-testid={testIds.appConfig.caCertificate}
+          />
+        </Field>
+        {d.smtp.skipVerify && !d.smtp.caCertificate && (
+          <Alert severity="warning" title="Skip certificate check was removed">
+            Version 0.1.6 always checks the server certificate, because skipping the check let anyone on the network read
+            the SMTP password. If this server has a self-signed certificate, paste it above and save.
+          </Alert>
+        )}
         <Button
           variant="secondary"
           icon={verifying ? 'spinner' : 'plug'}

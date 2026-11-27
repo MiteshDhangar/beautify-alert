@@ -29,23 +29,27 @@ type SMTP struct {
 	now func() time.Time
 }
 
-// tlsConfig verifies the server certificate unless the admin turned on
-// "Skip certificate check" for an SMTP server with a self-signed certificate
-// (the same option as skip_verify in Grafana's own [smtp] settings).
-func tlsConfig(c config.SMTP) *tls.Config {
-	cfg := &tls.Config{ServerName: c.Host, MinVersion: tls.VersionTLS12}
-	if c.SkipVerify {
-		cfg.InsecureSkipVerify = true // #nosec G402 -- explicit admin opt-in, off by default
+// tlsConfig always verifies the server certificate. Servers with a
+// self-signed or private certificate work when the admin pastes that
+// certificate (or its CA) as the trusted certificate.
+func tlsConfig(c config.SMTP) (*tls.Config, error) {
+	pool, err := c.CertPool()
+	if err != nil {
+		return nil, err
 	}
-	return cfg
+	return &tls.Config{ServerName: c.Host, MinVersion: tls.VersionTLS12, RootCAs: pool}, nil
 }
 
 func (s *SMTP) client() (*mail.Client, error) {
 	c := s.cfg.SMTP
+	tc, err := tlsConfig(c)
+	if err != nil {
+		return nil, err
+	}
 	opts := []mail.Option{
 		mail.WithPort(c.Port),
 		mail.WithTimeout(smtpTimeout),
-		mail.WithTLSConfig(tlsConfig(c)),
+		mail.WithTLSConfig(tc),
 	}
 	switch c.Security {
 	case config.SecurityTLS:
@@ -169,6 +173,12 @@ func (s *SMTP) explain(err error) error {
 		return fmt.Errorf("%s: the server offered no login method on this connection. If it needs a login, set Security to STARTTLS or TLS; if it does not, clear the username: %w", where, err)
 	case strings.Contains(err.Error(), "does not support STARTTLS"):
 		return fmt.Errorf("%s: the server does not support STARTTLS. Use TLS for port 465, or None for a local relay: %w", where, err)
+	case strings.Contains(text, "x509") || strings.Contains(strings.ToLower(text), "certificate"):
+		hint := "use the host name on the certificate, or paste the server's certificate (or its CA) as the trusted certificate on the Configuration page"
+		if s.cfg.SMTP.LegacySkipVerify && strings.TrimSpace(s.cfg.SMTP.CACertificate) == "" {
+			hint = "\"Skip certificate check\" was removed in 0.1.6 because it made the connection open to interception; paste the server's certificate (or its CA) as the trusted certificate on the Configuration page instead"
+		}
+		return cleanError{fmt.Errorf("%s: the server's certificate could not be verified; %s: %w", where, hint, err)}
 	case authRejectedRe.MatchString(text) || strings.Contains(strings.ToLower(text), "username and password not accepted"):
 		return cleanError{fmt.Errorf("%s: the server rejected the username or password. For Gmail and Microsoft 365, use an app password: %w", where, err)}
 	}

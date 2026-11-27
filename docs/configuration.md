@@ -20,7 +20,7 @@ Beautify Alert has its own SMTP settings. It does not use the `[smtp]` section o
 | Port | Usually 587 with STARTTLS or 465 with TLS. The port changes with the security setting when it still has the default value. |
 | Security | **STARTTLS** upgrades the connection to TLS and fails if the server does not support it. **TLS** connects with TLS from the start (port 465). **None** sends unencrypted, for local relays only. |
 | Username, Password | Leave the username empty for servers that need no login. The password is stored encrypted. |
-| Skip certificate check | Only for servers with self-signed certificates. Off by default. |
+| Trusted certificate | Optional. For a server with a self-signed or private certificate, paste its certificate, or the CA that issued it, in PEM format. It is trusted in addition to the system's certificates. Certificates are always checked; there is no option to skip the check. |
 
 **Test connection** connects, starts TLS and logs in, without sending an email. Errors say what to change, for example "the server does not support STARTTLS. Use TLS for port 465".
 

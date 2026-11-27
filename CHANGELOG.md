@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6
+
+- Removed **Skip certificate check**. It turned off TLS certificate checks, so anyone on the network between Grafana and the SMTP server could read the SMTP password (gosec G402). Certificates are now always checked.
+- New **Trusted certificate** setting for SMTP servers with a self-signed or private certificate: paste the server's certificate, or its CA, in PEM format.
+- If **Skip certificate check** was on, the Configuration page and certificate errors say what to do instead.
+- **Test connection** reuses the saved password only when the trusted certificate is also unchanged.
+
 ## 0.1.5
 
 Security fixes from internal penetration testing. Upgrade recommended.

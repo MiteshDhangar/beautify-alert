@@ -26,7 +26,10 @@ export interface Delivery {
     port: number;
     username: string;
     security: SmtpSecurity;
-    skipVerify: boolean;
+    /** PEM certificate trusted in addition to the system roots. */
+    caCertificate?: string;
+    /** Removed in 0.1.6: certificates are always verified. Only read to show a notice. */
+    skipVerify?: boolean;
   };
 }
 

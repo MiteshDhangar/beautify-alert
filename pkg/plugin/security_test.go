@@ -93,7 +93,7 @@ func TestVerifyReusesSavedPasswordOnlyForSavedServer(t *testing.T) {
 		"other host":        {func(d *config.Delivery) { d.SMTP.Host = "evil.test" }, http.StatusBadRequest},
 		"other port":        {func(d *config.Delivery) { d.SMTP.Port = 2525 }, http.StatusBadRequest},
 		"no TLS":            {func(d *config.Delivery) { d.SMTP.Security = config.SecurityNone }, http.StatusBadRequest},
-		"skip cert check":   {func(d *config.Delivery) { d.SMTP.SkipVerify = true }, http.StatusBadRequest},
+		"own certificate":   {func(d *config.Delivery) { d.SMTP.CACertificate = "-----BEGIN CERTIFICATE-----" }, http.StatusBadRequest},
 		"same server":       {func(d *config.Delivery) {}, http.StatusBadGateway}, // reaches delivery.New with the saved password; the host does not exist
 		"host in uppercase": {func(d *config.Delivery) { d.SMTP.Host = "SMTP.X.COM" }, http.StatusBadGateway},
 	} {

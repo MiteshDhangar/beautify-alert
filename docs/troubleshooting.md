@@ -36,7 +36,8 @@ The alert never reached the plugin.
 | `outside the allowed domains` | The recipient's domain is not in **Allowed recipient domains**. |
 | `over the limit of N emails per notification` | One notification named more recipient lists than **Max emails per notification**. Raise it, or group recipients into fewer lists. |
 | `rejected the username or password`, `535` | Wrong login. Gmail and Microsoft 365 need an app password; SendGrid's username is `apikey`. |
-| `certificate`, `x509` | The server's certificate does not match the host name or is self-signed. Use the host name on the certificate, or turn on **Skip certificate check** for a trusted internal server. |
+| `certificate could not be verified`, `x509` | The certificate does not match the host name, or it is self-signed or from a private CA. Use the host name on the certificate, or paste the server's certificate (or its CA) as the **Trusted certificate**. To get it: `openssl s_client -connect smtp.example.com:465 -showcerts </dev/null` (add `-starttls smtp` for port 587) and copy the `BEGIN CERTIFICATE` block. |
+| `Skip certificate check was removed` | Version 0.1.6 removed this option. Paste the server's certificate as the **Trusted certificate** instead. |
 | `no valid recipients` | Every address was invalid. Check the `email_to` label, the template's recipients and the default recipients. |
 | `no recipients` | Nobody to send to. Set default recipients on the Configuration page. |
 | `550`, `553`, `sender rejected` | The SMTP provider does not allow this from address. Verify the address or domain with the provider. |

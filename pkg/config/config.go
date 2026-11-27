@@ -6,6 +6,7 @@ package config
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -68,12 +69,35 @@ func (t Template) InlinesCSS() bool { return t.InlineCSS == nil || *t.InlineCSS 
 
 // SMTP holds SMTP server settings.
 type SMTP struct {
-	Host       string `json:"host"`
-	Port       int    `json:"port"`
-	Username   string `json:"username"`
-	Password   string `json:"-"`
-	Security   string `json:"security"`
-	SkipVerify bool   `json:"skipVerify"`
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Username string `json:"username"`
+	Password string `json:"-"`
+	Security string `json:"security"`
+	// CACertificate is a PEM certificate trusted in addition to the system's
+	// roots: the server's own certificate if it is self-signed, or the
+	// private CA that issued it. Certificates are always verified.
+	CACertificate string `json:"caCertificate,omitempty"`
+	// LegacySkipVerify is the "Skip certificate check" setting of versions
+	// before 0.1.6. It no longer turns checks off; it only explains a
+	// certificate error.
+	LegacySkipVerify bool `json:"skipVerify,omitempty"`
+}
+
+// CertPool returns the system roots plus CACertificate, or nil when
+// CACertificate is empty (meaning: the system roots).
+func (s SMTP) CertPool() (*x509.CertPool, error) {
+	if strings.TrimSpace(s.CACertificate) == "" {
+		return nil, nil
+	}
+	pool, err := x509.SystemCertPool()
+	if err != nil || pool == nil {
+		pool = x509.NewCertPool()
+	}
+	if !pool.AppendCertsFromPEM([]byte(s.CACertificate)) {
+		return nil, errors.New("the trusted certificate is not a PEM certificate; paste the text from -----BEGIN CERTIFICATE----- to -----END CERTIFICATE-----")
+	}
+	return pool, nil
 }
 
 // Delivery holds how and from whom email is sent.
@@ -244,6 +268,9 @@ func (s Settings) CheckDelivery() error {
 	}
 	if len(missing) > 0 {
 		return fmt.Errorf("%w: set the %s on the plugin's Configuration page", ErrNotConfigured, strings.Join(missing, " and "))
+	}
+	if _, err := s.Delivery.SMTP.CertPool(); err != nil {
+		return err
 	}
 	return nil
 }
